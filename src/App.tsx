@@ -4,6 +4,7 @@ import ReportsList from './components/ReportsList';
 import DashboardScreen from './components/DashboardScreen';
 import WorkerScreen from './components/WorkerScreen';
 import { Camera, Map, BarChart2, CheckCircle, AlertTriangle, Info, X, Users } from 'lucide-react';
+import { PWABadge } from './components/PWABadge';
 
 interface ToastData {
   message: string;
@@ -138,6 +139,7 @@ function App() {
           </button>
         </div>
       )}
+      <PWABadge />
     </div>
   );
 }

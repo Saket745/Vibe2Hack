@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { showToast } from '../lib/toast';
 import imageCompression from 'browser-image-compression';
+import { OfflineQueueService } from '../lib/OfflineQueueService';
 import { 
   Camera, 
   MapPin, 
@@ -12,7 +13,8 @@ import {
   RefreshCw,
   AlertCircle,
   Sparkles,
-  Info
+  Info,
+  CloudOff
 } from 'lucide-react';
 
 interface TriageResult {
@@ -49,9 +51,12 @@ export default function ReportScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionStep, setSubmissionStep] = useState<string>('');
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [successResult, setSuccessResult] = useState<TriageResult & { imageUrl: string; wardName: string } | null>(null);
+  const [successResult, setSuccessResult] = useState<TriageResult & { imageUrl: string; wardName: string; isOffline?: boolean } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
   // 1. Get reporter ID on mount (anonymous UUID)
   const [reporterId] = useState<string>(() => {
@@ -64,9 +69,34 @@ export default function ReportScreen() {
     return id;
   });
 
-  // 2. Fetch Location on Mount
+  // 2. Fetch Location on Mount & Offline Queue
   useEffect(() => {
     fetchLocation();
+    
+    const refreshQueueCount = () => {
+      setOfflineQueueCount(OfflineQueueService.getQueue().length);
+    };
+    refreshQueueCount();
+    window.addEventListener('offline-queue-updated', refreshQueueCount);
+    
+    const syncOffline = async () => {
+      if (OfflineQueueService.getQueue().length > 0 && navigator.onLine) {
+        setIsSyncingOffline(true);
+        await OfflineQueueService.sync();
+        setIsSyncingOffline(false);
+      }
+    };
+    
+    window.addEventListener('online', syncOffline);
+    window.addEventListener('focus', syncOffline);
+    const interval = setInterval(syncOffline, 60000); // Check every minute
+    
+    return () => {
+      window.removeEventListener('offline-queue-updated', refreshQueueCount);
+      window.removeEventListener('online', syncOffline);
+      window.removeEventListener('focus', syncOffline);
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchLocation = () => {
@@ -134,6 +164,9 @@ export default function ReportScreen() {
     setIsSubmitting(true);
     setSubmitError(null);
 
+    let base64Data = '';
+    const client_submission_id = crypto.randomUUID();
+
     try {
       // Step A: Image Compression
       setSubmissionStep('Compressing image file...');
@@ -146,7 +179,7 @@ export default function ReportScreen() {
 
       // Step B: Convert to Base64 for Gemini API
       setSubmissionStep('Converting image for analysis...');
-      const base64Data = await new Promise<string>((resolve, reject) => {
+      base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = reject;
@@ -168,7 +201,8 @@ export default function ReportScreen() {
           reporterId: reporterId,
           description: description,
           latitude: latitude,
-          longitude: longitude
+          longitude: longitude,
+          client_submission_id
         })
       });
 
@@ -218,9 +252,41 @@ export default function ReportScreen() {
       
     } catch (err: any) {
       console.error('Submission error:', err);
-      const errMsg = err.message || 'An error occurred while submitting your report. Please try again.';
-      setSubmitError(errMsg);
-      showToast(errMsg, 'error');
+      if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        try {
+          OfflineQueueService.enqueue({
+            image: base64Data,
+            mimeType: imageFile.type,
+            reporterId: reporterId,
+            description: description,
+            latitude: latitude,
+            longitude: longitude,
+            client_submission_id
+          });
+          setSuccessResult({
+            isOffline: true,
+            category: 'pothole', // Fallback value, won't be displayed
+            severity: 'low',     // Fallback value
+            explanation: '',
+            isValidCivicIssue: true,
+            isBorderline: false,
+            confidence: 1,
+            rejectionReason: '',
+            status: 'pending',
+            segmentation_mask: { box_2d: [0,0,0,0], label: '' },
+            imageUrl: base64Data,
+            wardName: 'Pending Sync'
+          });
+          showToast('Saved offline. Will sync when you reconnect.', 'info');
+        } catch (queueErr: any) {
+          setSubmitError(queueErr.message || 'Could not save offline.');
+          showToast('Failed to save offline', 'error');
+        }
+      } else {
+        const errMsg = err.message || 'An error occurred while submitting your report. Please try again.';
+        setSubmitError(errMsg);
+        showToast(errMsg, 'error');
+      }
       setIsSubmitting(false);
     }
   };
@@ -255,15 +321,31 @@ export default function ReportScreen() {
       {successResult && (
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl animate-in fade-in zoom-in duration-300">
           <div className="text-center mb-6">
-            <div className="inline-flex p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 mb-3">
-              <CheckCircle className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-              Report Submitted!
-            </h2>
-            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-              Assigned to {successResult.wardName}
-            </p>
+            {successResult.isOffline ? (
+              <>
+                <div className="inline-flex p-3 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 mb-3">
+                  <CloudOff className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                  Saved Offline
+                </h2>
+                <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold mt-1">
+                  Will sync automatically when connected
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="inline-flex p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 mb-3">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                  Report Submitted!
+                </h2>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                  Assigned to {successResult.wardName}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Borderline Issue Warning */}
@@ -315,7 +397,8 @@ export default function ReportScreen() {
           </div>
 
           {/* AI Decision Details Card */}
-          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 space-y-3 mb-6">
+          {!successResult.isOffline && (
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 space-y-3 mb-6">
             <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-slate-800/50">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Classification</span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200/50 dark:border-purple-900/30">
@@ -343,6 +426,7 @@ export default function ReportScreen() {
               </p>
             </div>
           </div>
+          )}
 
           <button
             onClick={handleReset}
@@ -355,13 +439,39 @@ export default function ReportScreen() {
 
       {/* Main Report Form */}
       {!successResult && (
-        <form 
-          onSubmit={handleSubmit}
-          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl space-y-6"
-        >
-          {/* 1. Photo Capture / Select Area */}
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+        <div className="space-y-6">
+          {offlineQueueCount > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <CloudOff className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Offline Queue</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500">{offlineQueueCount} report(s) waiting to sync</p>
+                </div>
+              </div>
+              <button 
+                onClick={async () => {
+                  setIsSyncingOffline(true);
+                  await OfflineQueueService.sync();
+                  setIsSyncingOffline(false);
+                }}
+                disabled={isSyncingOffline || !navigator.onLine}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white text-xs font-bold rounded-lg shadow transition-colors flex items-center gap-2"
+              >
+                {isSyncingOffline ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Sync
+              </button>
+            </div>
+          )}
+          <form 
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl space-y-6"
+          >
+            {/* 1. Photo Capture / Select Area */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
               Capture Issue Photo <span className="text-rose-500">*</span>
             </label>
             
@@ -506,6 +616,7 @@ export default function ReportScreen() {
             </p>
           </div>
         </form>
+        </div>
       )}
     </div>
   );

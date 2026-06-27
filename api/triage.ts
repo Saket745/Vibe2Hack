@@ -198,7 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { image, mimeType, reporterId, description, latitude, longitude } = req.body;
+    const { image, mimeType, reporterId, description, latitude, longitude, client_submission_id } = req.body;
 
     const ip = (req.headers['x-real-ip'] as string) || 
                (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
@@ -449,7 +449,7 @@ Evaluate the issue according to the following strict guidelines:
     // 7. Match nearest ward
     const matchedWard = await findNearestWard(Number(latitude), Number(longitude));
 
-    // 8. Calculate Deduplication Hash using normalized server-side parameters
+    // 8. Calculate Deduplication Hash using normalized server-side parameters or client UUID
     const now = new Date();
     const minutes = now.getUTCMinutes();
     const roundedMinutes = Math.floor(minutes / 5) * 5;
@@ -457,7 +457,9 @@ Evaluate the issue according to the following strict guidelines:
     const timeBucket = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), roundedMinutes, 0, 0)).toISOString();
     const roundedLat = Number(latitude).toFixed(4);
     const roundedLng = Number(longitude).toFixed(4);
-    const dedupeHash = `${finalReporterId}:${matchedWard.id}:${parsedResult.category}:${roundedLat}:${roundedLng}:${timeBucket}`;
+    
+    const calculatedHash = `${finalReporterId}:${matchedWard.id}:${parsedResult.category}:${roundedLat}:${roundedLng}:${timeBucket}`;
+    const dedupeHash = client_submission_id ? `client_id_${client_submission_id}` : calculatedHash;
 
     // Fast check to see if duplicate exists
     const { data: existingDup, error: queryError } = await supabasePublic
