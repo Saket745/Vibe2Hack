@@ -89,8 +89,15 @@ Community Hero uses Supabase PostgreSQL. Below are the core tables utilized duri
 ### Prerequisites
 *   Node.js (v18+)
 *   npm or yarn
-*   A Supabase Project
-*   A Gemini API Key (from Google AI Studio)
+*   (Optional) A Supabase Project & Gemini API Key (for Real Mode)
+
+### Mode Options
+
+Community Hero supports two modes of operation:
+1.  **Mock Mode (Default Fallback)**: Runs entirely locally without needing Supabase or Gemini credentials. Uses browser `localStorage` as a mock database and pre-seeds it with 15 realistic reports so the dashboard, map, and worker screens are fully populated out-of-the-box!
+2.  **Real Mode**: Connects to your live Supabase project and Gemini API for real AI vision triage and storage.
+
+---
 
 ### Local Development Setup
 
@@ -106,18 +113,68 @@ Community Hero uses Supabase PostgreSQL. Below are the core tables utilized duri
     ```
 
 3.  **Configure Environment Variables**
-    Create a `.env` file in the root directory and add the following keys (see `.env.example`):
-    ```env
-    VITE_SUPABASE_URL=your_supabase_project_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    GEMINI_API_KEY=your_gemini_api_key
-    ```
+    Create a `.env` file in the root directory.
+    *   **For Mock Mode**: Leave `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` blank. The app will automatically run in local mock database mode.
+    *   **For Real Mode**: Fill in the Supabase and Gemini keys:
+        ```env
+        VITE_SUPABASE_URL=your_supabase_project_url
+        VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+        GEMINI_API_KEY=your_gemini_api_key
+        ```
 
 4.  **Start the Local Dev Server**
-    ```bash
-    npm run dev
-    ```
+    You can start both the Vite frontend dev server and the mock API server simultaneously using our start script:
+    *   **Windows (PowerShell/Command Prompt)**:
+        ```bash
+        .\start-dev.bat
+        ```
+    *   **Mac/Linux**:
+        Run the frontend and backend in separate terminals:
+        ```bash
+        # Terminal 1: Start Vite Frontend (port 5173)
+        npm run dev
+
+        # Terminal 2: Start API Server (port 3000)
+        npx tsx dev-server.ts
+        ```
     The application will be running at `http://localhost:5173`.
+
+---
+
+## 🎬 Demo Walkthrough Script
+
+Follow these steps to experience the complete report, triage, resolution, and feedback loop:
+
+### Step 1: Explore Dashboard & Heatmap
+1. Open the application at `http://localhost:5173`.
+2. Observe the **Explore** and **Stats** tabs.
+3. The dashboard is populated with **15 realistic mock reports** spanning all 5 wards and severities.
+4. Click on pins on the map to see details, or view the charts showing Category Breakdown and Avg Resolution times.
+
+### Step 2: File a Citizen Report
+1. Go to the **Report** tab.
+2. Select or capture an issue photo (e.g. click "Take Photo or Upload Image" and select any picture).
+3. Enter a description: *"Huge pothole on Commercial Street."*
+4. Click **File Civic Report**.
+5. Watch the **AI Triage Process** in real-time (loading phases: compressing -> converting -> analyzing -> submitting).
+6. On success, see the modal displaying the auto-classified category (`pothole`), severity (`high`), AI explanation, and bounding box overlay.
+
+### Step 3: Manage Queue as a Ward Worker
+1. Go to the **Worker** tab.
+2. Log in using mock credentials:
+   - **Email**: `worker@downtown.com`
+   - **Password**: `password`
+3. Notice you are logged in as an authorized worker assigned to **Ward 1 - Downtown**.
+4. Observe the Action Queue sorted automatically by `needs_manual_review` first, then severity.
+5. Click **Manage** on the new report you just filed.
+6. Click **Start Investigation** (status changes from Open to In Progress).
+7. Click **Resolve Issue**, upload an "after" resolution photo (e.g., any picture), write notes like *"Pothole filled and sealed."*, and click **Confirm Resolution**.
+
+### Step 4: Submit Citizen Feedback
+1. Go back to the **Explore** tab.
+2. Find your resolved report.
+3. Observe the green **Resolved** badge, the resolution notes, and the "After" photo.
+4. Rate the resolution 5 stars, write a comment, and click **Submit Feedback**.
 
 ---
 
@@ -125,19 +182,21 @@ Community Hero uses Supabase PostgreSQL. Below are the core tables utilized duri
 
 ### 📅 Day 1: Core Foundation (8 Hours)
 *   [x] **Setup**: Scaffold Vite + React + TS app, tailwind, git repository, and connect to Supabase.
-*   [ ] **AI Services**: Implement Vercel serverless function `/api/triage.ts` calling the Gemini API for structured JSON triage.
-*   [ ] **Citizen Reporting UI**: Build form with GPS lookup, camera capture, client-side compression, and upload.
-*   [ ] **Dashboard and Map**: Display active reports on Leaflet map, visualize key metrics via Recharts.
-*   [ ] **Deploy**: Launch live site on Vercel with configured environment variables.
+*   [x] **AI Services**: Implement Vercel serverless function `/api/triage.ts` calling the Gemini API for structured JSON triage.
+*   [x] **Citizen Reporting UI**: Build form with GPS lookup, camera capture, client-side compression, and upload.
+*   [x] **Dashboard and Map**: Display active reports on Leaflet map, visualize key metrics via Recharts.
+*   [x] **Deploy**: Launch live site on Vercel with configured environment variables.
 
 ### 📅 Day 2: Workers & Actions
-*   [ ] **Worker Login**: Add authentication for municipal workers.
-*   [ ] **Resolution Flow**: Workers update status from `Open` to `Resolved` and upload confirmation images.
-*   [ ] **Satisfaction Surveys**: Send confirmation notifications back to citizens.
+*   [x] **Worker Login**: Add authentication for municipal workers (Supabase Auth).
+*   [x] **Resolution Flow**: Workers update status: `Open` -> `In Progress` -> `Resolved`/`Rejected`, upload resolution images and write worker notes.
+*   [x] **Audit Log**: Keep track of status history (`report_status_history` table) on status changes.
 
-### 📅 Day 3: Fraud Prevention & Verification
-*   [ ] **Mismatched Image Detection**: Use Gemini to cross-check the resolution image against the initial report image to detect fraud.
-*   [ ] **Duplicate Detection**: Prevent reporting of identical issues within a specific time and space boundary.
+### 📅 Day 3: Hardening & Validation
+*   [x] **Duplicate Detection**: Prevent identical issues within a 5-minute time and 100m spatial boundary.
+*   [x] **Abuse Guards**: Add rate limiting per IP and reporter ID, and reject payloads over 1.5MB.
+*   [x] **Robust Error Handling**: Handle geolocation denied/unsupported, database query errors with retry, and Gemini API rate-limits.
+*   [x] **Demo Seeding**: Seed 15 realistic reports across all 5 wards and severities in mock and production mode.
 
 ---
 
