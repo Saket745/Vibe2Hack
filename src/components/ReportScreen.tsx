@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { showToast } from '../lib/toast';
 import imageCompression from 'browser-image-compression';
 import { OfflineQueueService } from '../lib/OfflineQueueService';
+import { supabase } from '../lib/supabaseClient';
 import { 
   Camera, 
   MapPin, 
@@ -73,14 +74,16 @@ export default function ReportScreen() {
   useEffect(() => {
     fetchLocation();
     
-    const refreshQueueCount = () => {
-      setOfflineQueueCount(OfflineQueueService.getQueue().length);
+    const refreshQueueCount = async () => {
+      const queue = await OfflineQueueService.getQueue();
+      setOfflineQueueCount(queue.length);
     };
     refreshQueueCount();
     window.addEventListener('offline-queue-updated', refreshQueueCount);
     
     const syncOffline = async () => {
-      if (OfflineQueueService.getQueue().length > 0 && navigator.onLine) {
+      const queue = await OfflineQueueService.getQueue();
+      if (queue.length > 0 && navigator.onLine) {
         setIsSyncingOffline(true);
         await OfflineQueueService.sync();
         setIsSyncingOffline(false);
@@ -177,7 +180,7 @@ export default function ReportScreen() {
       };
       const compressedFile = await imageCompression(imageFile, options);
 
-      // Step B: Convert to Base64 for Gemini API
+      // Step B: Convert to Base64 for fallback Offline Queue
       setSubmissionStep('Converting image for analysis...');
       base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -186,75 +189,69 @@ export default function ReportScreen() {
         reader.readAsDataURL(compressedFile);
       });
 
-      // Step C: Trigger Triage Serverless Function (AI Classification, Storage Upload, and DB Insert)
+      // NEW STEP: Upload to Supabase Storage temporarily
+      setSubmissionStep('Uploading image to secure storage...');
+      const fileExt = imageFile.type.split('/')[1] || 'jpg';
+      const tempStoragePath = `temp/${client_submission_id}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('report-photos')
+        .upload(tempStoragePath, compressedFile, {
+          contentType: imageFile.type,
+          upsert: true
+        });
+
+      if (uploadError) {
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
+      }
+
+      // Step C: Trigger Triage Serverless Function via Webhook (Database Insert)
       setSubmissionStep('Submitting civic report to server...');
       
-      const apiEndpoint = '/api/triage';
-      const triageResponse = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64Data,
-          mimeType: imageFile.type,
-          reporterId: reporterId,
-          description: description,
-          latitude: latitude,
-          longitude: longitude,
-          client_submission_id
-        })
+      const { error: insertError } = await supabase.from('reports').insert({
+        reporter_id: reporterId,
+        image_url: tempStoragePath,
+        description: description || '',
+        latitude: latitude,
+        longitude: longitude,
+        status: 'pending_triage',
+        category: 'unknown',
+        severity: 'unknown',
+        dedupe_hash: `client_id_${client_submission_id}`
       });
 
-      if (triageResponse.status === 409) {
-        const dupData = await triageResponse.json();
-        setIsSubmitting(false);
-        setSubmitError(`Duplicate Submission: ${dupData.message || 'This report appears to be already submitted nearby.'}`);
-        showToast('Duplicate report detected.', 'error');
-        return;
-      }
-
-      if (triageResponse.status === 429) {
-        const limitData = await triageResponse.json();
-        setIsSubmitting(false);
-        setSubmitError(`Rate Limit Exceeded: ${limitData.error || 'Too many requests. Please wait a minute.'}`);
-        showToast('Rate limit exceeded.', 'error');
-        return;
-      }
-
-      if (!triageResponse.ok) {
-        const errorText = await triageResponse.text();
-        throw new Error(`Submission failed: ${errorText || triageResponse.statusText}`);
-      }
-
-      const triageData = await triageResponse.json();
-
-      // Check if the issue is invalid (clearly not a civic infrastructure issue)
-      if (!triageData.isValidCivicIssue && triageData.status === 'rejected') {
-        setIsSubmitting(false);
-        setSubmitError(`Submission Blocked by AI Triage: This photo does not appear to contain a valid public infrastructure issue. Reason: ${triageData.rejectionReason || 'No details provided.'}`);
-        return;
-      }
-
-      // Sync reporter ID if minted by the server
-      if (triageData.reporterId && triageData.reporterId !== reporterId) {
-        localStorage.setItem('reporter_id', triageData.reporterId);
+      if (insertError) {
+        if (insertError.code === '23505') {
+            setIsSubmitting(false);
+            setSubmitError(`Duplicate Submission: This report appears to be already submitted.`);
+            showToast('Duplicate report detected.', 'error');
+            return;
+        }
+        throw new Error(`Database save failed: ${insertError.message}`);
       }
 
       // Success State
-      showToast('Civic report filed successfully!', 'success');
+      showToast('Civic report queued for AI processing!', 'success');
       setSuccessResult({
-        ...triageData,
-        imageUrl: triageData.imageUrl || base64Data,
-        wardName: triageData.wardName || 'Unknown Ward'
+        category: 'unknown' as any,
+        severity: 'unknown' as any,
+        explanation: 'Your report is currently being analyzed by our AI system. It will appear on the map shortly!',
+        isValidCivicIssue: true,
+        isBorderline: false,
+        confidence: 0,
+        rejectionReason: '',
+        segmentation_mask: { box_2d: [0,0,0,0], label: '' },
+        status: 'pending_triage',
+        imageUrl: base64Data,
+        wardName: 'Pending Match'
       });
       setIsSubmitting(false);
       
     } catch (err: any) {
       console.error('Submission error:', err);
-      if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('Storage upload failed')) {
         try {
-          OfflineQueueService.enqueue({
+          await OfflineQueueService.enqueue({
             image: base64Data,
             mimeType: imageFile.type,
             reporterId: reporterId,

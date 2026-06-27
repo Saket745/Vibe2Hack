@@ -114,6 +114,8 @@ export default function DashboardScreen() {
       const { data, error: fetchError } = await supabase
         .from('reports')
         .select('*, wards(name)')
+        .not('status', 'eq', 'pending_triage')
+        .not('status', 'eq', 'rejected')
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;

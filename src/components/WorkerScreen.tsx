@@ -156,7 +156,9 @@ export default function WorkerScreen() {
       const { data, error } = await supabase
         .from('reports')
         .select('*, wards(name)')
-        .eq('ward_id', targetWardId);
+        .eq('ward_id', targetWardId)
+        .not('status', 'eq', 'pending_triage')
+        .not('status', 'eq', 'rejected');
       if (error) throw error;
       setReports(data || []);
     } catch (err: any) {
@@ -294,6 +296,16 @@ export default function WorkerScreen() {
         });
         localStorage.setItem('mock_db_reports', JSON.stringify(updatedReports));
       }
+
+      // Dispatch global event for local/mock Realtime Notifications
+      window.dispatchEvent(new CustomEvent('mock-status-update', {
+        detail: {
+          reportId,
+          newStatus,
+          oldStatus: selectedReport?.status,
+          reporterId: selectedReport?.reporter_id
+        }
+      }));
 
       showToast(`Status updated → ${newStatus.replace('_', ' ')}`, 'success');
       

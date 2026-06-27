@@ -5,6 +5,7 @@ import DashboardScreen from './components/DashboardScreen';
 import WorkerScreen from './components/WorkerScreen';
 import { Camera, Map, BarChart2, CheckCircle, AlertTriangle, Info, X, Users } from 'lucide-react';
 import { PWABadge } from './components/PWABadge';
+import { useRealtimeNotifications } from './hooks/useRealtimeNotifications';
 
 interface ToastData {
   message: string;
@@ -12,6 +13,8 @@ interface ToastData {
 }
 
 function App() {
+  useRealtimeNotifications();
+  
   const [activeTab, setActiveTab] = useState<'report' | 'explore' | 'dashboard' | 'worker'>('report');
   const [toast, setToast] = useState<ToastData | null>(null);
 
