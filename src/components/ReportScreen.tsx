@@ -3,6 +3,7 @@ import { showToast } from '../lib/toast';
 import imageCompression from 'browser-image-compression';
 import { OfflineQueueService } from '../lib/OfflineQueueService';
 import { supabase } from '../lib/supabaseClient';
+import { useCitizenId } from '../hooks/useCitizenId';
 import { 
   Camera, 
   MapPin, 
@@ -59,16 +60,8 @@ export default function ReportScreen() {
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   const [isSyncingOffline, setIsSyncingOffline] = useState(false);
 
-  // 1. Get reporter ID on mount (anonymous UUID)
-  const [reporterId] = useState<string>(() => {
-    let id = localStorage.getItem('reporter_id');
-    if (!id) {
-      // standard RFC4122 v4 UUID generator fallback
-      id = 'f' + (Math.random().toString(36).substring(2, 17) + Math.random().toString(36).substring(2, 17)).substring(0, 35);
-      localStorage.setItem('reporter_id', id);
-    }
-    return id;
-  });
+  // 1. Get reporter ID on mount using hook
+  const { citizenId: reporterId } = useCitizenId();
 
   // 2. Fetch Location on Mount & Offline Queue
   useEffect(() => {

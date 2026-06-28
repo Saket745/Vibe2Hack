@@ -37,3 +37,51 @@ MoSCoW-tagged so cuts are obvious if time runs short. Bundling the risk fixes fr
 | **3.1 — Submission Packaging** | **Must** | README with setup \+ env vars, confirm production Vercel deploy \+ Supabase prod project are the ones actually demoed (not localhost), short demo script covering Report → Explore → Stats → Worker resolve loop. | 3.0 |
 | **Stretch — Cut first if behind** | **Could** | Push notifications, multi-city ward sets beyond the 5 seeded, offline queue for spotty connectivity, native app wrapper. | — |
 
+
+Things To DO (Remaining):
+According to the ROADMAP.md, we are incredibly close to the finish line! Here is exactly what is remaining:
+
+1. ~~Phase 3.0: Hardening & Demo Prep (MUST DO)~~ (COMPLETED)
+~~Seed Realistic Demo Data: Populate all 5 wards with varied, realistic reports so the map and dashboard charts (pie charts/stats) look impressive and populated for the judges, rather than sparse.~~
+~~Final RLS (Row Level Security) Pass: A final security sweep on Supabase to ensure public read/insert and authenticated-only update boundaries are completely bulletproof.~~
+~~Error/Loading States: A final UI polish pass to ensure every asynchronous path (like geolocation denial, webhook loading) degrades gracefully.~~
+2. ~~Phase 3.1: Submission Packaging (MUST DO)~~ (COMPLETED)
+~~README Update: Write a clean README.md with setup instructions and environment variables for the judges.~~
+~~Demo Script: Write a short, punchy script covering the exact flow to demo (Report → Explore → Stats → Worker Resolve).~~
+(Note: Push notifications were marked as a "Stretch" goal and we already agreed to defer them. The offline queue, which was also a stretch goal, is actually already completed!)
+
+If you are ready, I can plan and execute Phase 3.0 (Demo Prep & Seeding) for you right now. Should we proceed?
+
+Also, don't forget to commit your current Phase 3 webhook code if you haven't already!
+
+
+Phase 4.1: Automated Worker Assignment Improvements  
+Automate ward assignment based on location using Haversine distance  
+Support multi-ward assignments for large incidents  
+Phase 4.2: Advanced Search & Filtering  
+Add search by keywords, ward, category, severity, date range  
+Implement sorting options (newest, oldest, nearest, highest priority)  
+Phase 4.3: Worker Route Optimization  
+Generate optimized routes for workers based on assigned reports  
+Show ETA and distance for each task  
+Phase 4.4: Worker Performance Tracking  
+Track worker response times and resolution rates  
+Add leaderboards and performance metrics  
+Phase 5: Citizen Engagement & Gamification  
+Add points/badges for reporting issues  
+Implement "thank you" system from workers to citizens  
+Phase 6: Notifications System  
+Push notifications for new high-severity reports  
+Email/SMS notifications for workers and citizens  
+Phase 7: Native App Development  
+React Native/Flutter app for iOS and Android  
+Offline-first capabilities  
+Phase 8: Admin Panel Enhancements  
+Advanced analytics and reporting  
+User management and role configuration  
+Phase 9: System Monitoring  
+API performance monitoring  
+Error tracking and alerting  
+Phase 10: Integration & Expansion  
+Integrate with city services and APIs  
+Multi-city support with ward management  

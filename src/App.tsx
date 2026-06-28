@@ -3,7 +3,9 @@ import ReportScreen from './components/ReportScreen';
 import ReportsList from './components/ReportsList';
 import DashboardScreen from './components/DashboardScreen';
 import WorkerScreen from './components/WorkerScreen';
-import { Camera, Map, BarChart2, CheckCircle, AlertTriangle, Info, X, Users } from 'lucide-react';
+import CitizenProfile from './components/CitizenProfile';
+import NotificationCenter from './components/NotificationCenter';
+import { Camera, Map, BarChart2, CheckCircle, AlertTriangle, Info, X, Users, Award } from 'lucide-react';
 import { PWABadge } from './components/PWABadge';
 import { useRealtimeNotifications } from './hooks/useRealtimeNotifications';
 
@@ -15,7 +17,7 @@ interface ToastData {
 function App() {
   useRealtimeNotifications();
   
-  const [activeTab, setActiveTab] = useState<'report' | 'explore' | 'dashboard' | 'worker'>('report');
+  const [activeTab, setActiveTab] = useState<'report' | 'explore' | 'profile' | 'dashboard' | 'worker'>('report');
   const [toast, setToast] = useState<ToastData | null>(null);
 
   // Listen for global custom toast events
@@ -47,8 +49,10 @@ function App() {
           Community Hero
         </span>
         
-        {/* Navigation Tabs */}
-        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-200/20">
+        <div className="flex items-center gap-2">
+          <NotificationCenter />
+          {/* Navigation Tabs */}
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-200/20">
           <button
             onClick={() => setActiveTab('report')}
             className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
@@ -70,6 +74,17 @@ function App() {
           >
             <Map className="w-3.5 h-3.5" />
             Explore
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              activeTab === 'profile'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            Profile
           </button>
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -94,7 +109,8 @@ function App() {
             Workers
           </button>
         </div>
-      </header>
+      </div>
+    </header>
 
       {/* Screen Render */}
       <div className="mt-2">
@@ -102,6 +118,8 @@ function App() {
           <ReportScreen />
         ) : activeTab === 'explore' ? (
           <ReportsList />
+        ) : activeTab === 'profile' ? (
+          <CitizenProfile />
         ) : activeTab === 'dashboard' ? (
           <DashboardScreen />
         ) : (

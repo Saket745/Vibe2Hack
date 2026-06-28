@@ -58,4 +58,5 @@ CREATE POLICY "Allow public insert access to reports"
 CREATE POLICY "Allow authenticated updates to reports" 
     ON reports FOR UPDATE 
     TO authenticated 
-    USING (true);
+    USING (auth.role() = 'authenticated')
+    WITH CHECK (auth.role() = 'authenticated');

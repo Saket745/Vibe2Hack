@@ -17,6 +17,18 @@ class MockSupabase {
     })
   };
 
+  channel(name: string) {
+    const builder = {
+      on: () => builder,
+      subscribe: () => builder
+    };
+    return builder;
+  }
+
+  removeChannel(channel: any) {
+    // no-op
+  }
+
   auth = {
     signUp: async ({ email }: any) => {
       console.log(`[Mock Auth] Sign Up: ${email}`);
@@ -49,8 +61,16 @@ class MockSupabase {
 
   from(tableName: string) {
     const ensureSeededMockData = () => {
-      if (localStorage.getItem('mock_db_reports')) {
-        return; // Already seeded
+      const existingData = localStorage.getItem('mock_db_reports');
+      if (existingData) {
+        try {
+          const parsed = JSON.parse(existingData);
+          if (Array.isArray(parsed) && parsed.length >= 30) {
+            return; // Already seeded with the latest data
+          }
+        } catch (e) {
+          // If parsing fails, fall through and re-seed
+        }
       }
 
       console.log('[Mock Database] Seeding initial realistic demo data...');
@@ -67,7 +87,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'open',
-          ward_id: 1,
+          ward_ids: [1],
           ai_analysis: {
             category: 'pothole',
             severity: 'high',
@@ -91,7 +111,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'medium',
           status: 'in_progress',
-          ward_id: 1,
+          ward_ids: [1],
           ai_analysis: {
             category: 'garbage',
             severity: 'medium',
@@ -115,7 +135,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'resolved',
-          ward_id: 2,
+          ward_ids: [2],
           ai_analysis: {
             category: 'streetlight',
             severity: 'low',
@@ -128,7 +148,9 @@ class MockSupabase {
           },
           dedupe_hash: 'mock-dedupe-3',
           after_image_url: 'https://picsum.photos/seed/resolve-3/800/600',
-          worker_notes: 'Bulb replaced by ward maintenance team.'
+          worker_notes: 'Bulb replaced by ward maintenance team.',
+          worker_thanked_at: new Date(Date.now() - 3.1 * 24 * 60 * 60 * 1000).toISOString(),
+          worker_thanked_by: 'mock-user-id-1'
         },
         {
           id: 'mock-report-4',
@@ -141,7 +163,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'open',
-          ward_id: 2,
+          ward_ids: [2],
           ai_analysis: {
             category: 'water leakage',
             severity: 'medium',
@@ -165,7 +187,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'medium',
           status: 'in_progress',
-          ward_id: 3,
+          ward_ids: [3],
           ai_analysis: {
             category: 'drainage',
             severity: 'medium',
@@ -189,7 +211,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'open',
-          ward_id: 3,
+          ward_ids: [3],
           ai_analysis: {
             category: 'streetlight',
             severity: 'high',
@@ -213,7 +235,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'low',
           status: 'open',
-          ward_id: 4,
+          ward_ids: [4],
           ai_analysis: {
             category: 'pothole',
             severity: 'low',
@@ -237,7 +259,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'high',
           status: 'resolved',
-          ward_id: 4,
+          ward_ids: [4],
           ai_analysis: {
             category: 'water leakage',
             severity: 'high',
@@ -263,7 +285,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'needs_manual_review',
-          ward_id: 5,
+          ward_ids: [5],
           ai_analysis: {
             category: 'drainage',
             severity: 'high',
@@ -287,7 +309,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'open',
-          ward_id: 5,
+          ward_ids: [5],
           ai_analysis: {
             category: 'garbage',
             severity: 'high',
@@ -311,7 +333,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'open',
-          ward_id: 1,
+          ward_ids: [1],
           ai_analysis: {
             category: 'streetlight',
             severity: 'low',
@@ -335,7 +357,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'low',
           status: 'resolved',
-          ward_id: 3,
+          ward_ids: [3],
           ai_analysis: {
             category: 'water leakage',
             severity: 'low',
@@ -361,7 +383,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'low',
           status: 'open',
-          ward_id: 2,
+          ward_ids: [2],
           ai_analysis: {
             category: 'drainage',
             severity: 'low',
@@ -385,7 +407,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'medium',
           status: 'needs_manual_review',
-          ward_id: 5,
+          ward_ids: [5],
           ai_analysis: {
             category: 'pothole',
             severity: 'medium',
@@ -409,7 +431,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'medium',
           status: 'rejected',
-          ward_id: 4,
+          ward_ids: [4],
           ai_analysis: {
             category: 'pothole',
             severity: 'medium',
@@ -421,6 +443,241 @@ class MockSupabase {
             segmentation_mask: { box_2d: [0, 0, 0, 0], label: 'invalid' }
           },
           dedupe_hash: 'mock-dedupe-15'
+        },
+        {
+          id: 'mock-report-16',
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-6',
+          image_url: 'https://picsum.photos/seed/pothole-4/800/600',
+          description: 'Large crater near the Brigade Road intersection. Very dangerous at night.',
+          latitude: 12.9740,
+          longitude: 77.5960,
+          category: 'pothole',
+          severity: 'high',
+          status: 'open',
+          ward_ids: [1],
+          ai_analysis: { category: 'pothole', severity: 'high', explanation: 'Deep pothole on a major commercial street.', confidence: 0.96, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [350, 250, 650, 750], label: 'pothole' } },
+          dedupe_hash: 'mock-dedupe-16'
+        },
+        {
+          id: 'mock-report-17',
+          created_at: new Date(Date.now() - 6.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-7',
+          image_url: 'https://picsum.photos/seed/garbage-3/800/600',
+          description: 'Illegal dumping site forming behind the old bakery.',
+          latitude: 12.9720,
+          longitude: 77.5930,
+          category: 'garbage',
+          severity: 'medium',
+          status: 'resolved',
+          ward_ids: [1],
+          ai_analysis: { category: 'garbage', severity: 'medium', explanation: 'Pile of uncollected waste on sidewalk.', confidence: 0.89, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 300, 700, 800], label: 'garbage' } },
+          dedupe_hash: 'mock-dedupe-17',
+          after_image_url: 'https://picsum.photos/seed/resolve-17/800/600',
+          worker_notes: 'Waste cleared and area sanitized.'
+        },
+        {
+          id: 'mock-report-18',
+          created_at: new Date(Date.now() - 5.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-8',
+          image_url: 'https://picsum.photos/seed/light-4/800/600',
+          description: 'Broken streetlight pole, looks like a vehicle hit it.',
+          latitude: 12.9700,
+          longitude: 77.5950,
+          category: 'streetlight',
+          severity: 'high',
+          status: 'in_progress',
+          ward_ids: [1],
+          ai_analysis: { category: 'streetlight', severity: 'high', explanation: 'Damaged street infrastructure posing physical hazard.', confidence: 0.94, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 400, 900, 600], label: 'streetlight' } },
+          dedupe_hash: 'mock-dedupe-18'
+        },
+        {
+          id: 'mock-report-19',
+          created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-6',
+          image_url: 'https://picsum.photos/seed/leak-4/800/600',
+          description: 'Water seeping through the road asphalt on 5th block.',
+          latitude: 12.9360,
+          longitude: 77.6250,
+          category: 'water leakage',
+          severity: 'medium',
+          status: 'resolved',
+          ward_ids: [2],
+          ai_analysis: { category: 'water leakage', severity: 'medium', explanation: 'Subsurface leak causing surface pooling.', confidence: 0.86, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 200, 600, 800], label: 'water leakage' } },
+          dedupe_hash: 'mock-dedupe-19',
+          after_image_url: 'https://picsum.photos/seed/resolve-19/800/600',
+          worker_notes: 'Underground pipe joint fixed.'
+        },
+        {
+          id: 'mock-report-20',
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-7',
+          image_url: 'https://picsum.photos/seed/drain-4/800/600',
+          description: 'Open manhole cover missing on the pedestrian path!',
+          latitude: 12.9340,
+          longitude: 77.6230,
+          category: 'drainage',
+          severity: 'high',
+          status: 'open',
+          ward_ids: [2],
+          ai_analysis: { category: 'drainage', severity: 'high', explanation: 'Missing manhole cover creates severe fall hazard.', confidence: 0.98, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [450, 400, 650, 600], label: 'drainage' } },
+          dedupe_hash: 'mock-dedupe-20'
+        },
+        {
+          id: 'mock-report-21',
+          created_at: new Date(Date.now() - 4.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-8',
+          image_url: 'https://picsum.photos/seed/pothole-5/800/600',
+          description: 'Multiple small potholes clustered together near the signal.',
+          latitude: 12.9370,
+          longitude: 77.6260,
+          category: 'pothole',
+          severity: 'low',
+          status: 'open',
+          ward_ids: [2],
+          ai_analysis: { category: 'pothole', severity: 'low', explanation: 'Cluster of minor surface degradation.', confidence: 0.88, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 300, 700, 700], label: 'pothole' } },
+          dedupe_hash: 'mock-dedupe-21'
+        },
+        {
+          id: 'mock-report-22',
+          created_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-6',
+          image_url: 'https://picsum.photos/seed/garbage-4/800/600',
+          description: 'Overflowing bins outside the metro station.',
+          latitude: 12.9730,
+          longitude: 77.6420,
+          category: 'garbage',
+          severity: 'high',
+          status: 'in_progress',
+          ward_ids: [3],
+          ai_analysis: { category: 'garbage', severity: 'high', explanation: 'Massive overflow affecting pedestrian transit.', confidence: 0.95, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [200, 200, 800, 800], label: 'garbage' } },
+          dedupe_hash: 'mock-dedupe-22'
+        },
+        {
+          id: 'mock-report-23',
+          created_at: new Date(Date.now() - 3.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-7',
+          image_url: 'https://picsum.photos/seed/light-5/800/600',
+          description: 'Streetlight is on during the daytime, wasting energy.',
+          latitude: 12.9700,
+          longitude: 77.6400,
+          category: 'streetlight',
+          severity: 'low',
+          status: 'needs_manual_review',
+          ward_ids: [3],
+          ai_analysis: { category: 'streetlight', severity: 'low', explanation: 'Lamp operational during daylight hours.', confidence: 0.68, isValidCivicIssue: true, isBorderline: true, rejectionReason: 'Low confidence in hazard level.', segmentation_mask: { box_2d: [100, 450, 400, 550], label: 'streetlight' } },
+          dedupe_hash: 'mock-dedupe-23'
+        },
+        {
+          id: 'mock-report-24',
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-8',
+          image_url: 'https://picsum.photos/seed/leak-5/800/600',
+          description: 'Water spraying from a broken community tap.',
+          latitude: 12.9725,
+          longitude: 77.6430,
+          category: 'water leakage',
+          severity: 'medium',
+          status: 'resolved',
+          ward_ids: [3],
+          ai_analysis: { category: 'water leakage', severity: 'medium', explanation: 'Broken tap causing continuous water waste.', confidence: 0.91, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 400, 600, 600], label: 'water leakage' } },
+          dedupe_hash: 'mock-dedupe-24',
+          after_image_url: 'https://picsum.photos/seed/resolve-24/800/600',
+          worker_notes: 'Tap fixture replaced.'
+        },
+        {
+          id: 'mock-report-25',
+          created_at: new Date(Date.now() - 2.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-6',
+          image_url: 'https://picsum.photos/seed/drain-5/800/600',
+          description: 'Storm drain completely blocked by construction sand.',
+          latitude: 12.9290,
+          longitude: 77.5820,
+          category: 'drainage',
+          severity: 'medium',
+          status: 'open',
+          ward_ids: [4],
+          ai_analysis: { category: 'drainage', severity: 'medium', explanation: 'Sediment blockage in drainage grate.', confidence: 0.89, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 200, 700, 800], label: 'drainage' } },
+          dedupe_hash: 'mock-dedupe-25'
+        },
+        {
+          id: 'mock-report-26',
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-7',
+          image_url: 'https://picsum.photos/seed/pothole-6/800/600',
+          description: 'Sinkhole forming in the middle of the residential cross road.',
+          latitude: 12.9320,
+          longitude: 77.5850,
+          category: 'pothole',
+          severity: 'high',
+          status: 'in_progress',
+          ward_ids: [4],
+          ai_analysis: { category: 'pothole', severity: 'high', explanation: 'Large depression indicating potential sinkhole.', confidence: 0.97, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [200, 200, 800, 800], label: 'pothole' } },
+          dedupe_hash: 'mock-dedupe-26'
+        },
+        {
+          id: 'mock-report-27',
+          created_at: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-8',
+          image_url: 'https://picsum.photos/seed/garbage-5/800/600',
+          description: 'Medical waste dumped near the local clinic.',
+          latitude: 12.9310,
+          longitude: 77.5840,
+          category: 'garbage',
+          severity: 'high',
+          status: 'resolved',
+          ward_ids: [4],
+          ai_analysis: { category: 'garbage', severity: 'high', explanation: 'Hazardous bio-waste dumped in public space.', confidence: 0.95, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 300, 600, 700], label: 'garbage' } },
+          dedupe_hash: 'mock-dedupe-27',
+          after_image_url: 'https://picsum.photos/seed/resolve-27/800/600',
+          worker_notes: 'Hazardous waste team dispatched and cleared.'
+        },
+        {
+          id: 'mock-report-28',
+          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-6',
+          image_url: 'https://picsum.photos/seed/light-6/800/600',
+          description: 'Wires hanging dangerously low from the streetlight pole.',
+          latitude: 12.9680,
+          longitude: 77.7490,
+          category: 'streetlight',
+          severity: 'high',
+          status: 'open',
+          ward_ids: [5],
+          ai_analysis: { category: 'streetlight', severity: 'high', explanation: 'Exposed live wiring at pedestrian height.', confidence: 0.99, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 400, 800, 600], label: 'streetlight' } },
+          dedupe_hash: 'mock-dedupe-28'
+        },
+        {
+          id: 'mock-report-29',
+          created_at: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-7',
+          image_url: 'https://picsum.photos/seed/leak-6/800/600',
+          description: 'Fire hydrant leaking slowly onto the pavement.',
+          latitude: 12.9710,
+          longitude: 77.7510,
+          category: 'water leakage',
+          severity: 'low',
+          status: 'in_progress',
+          ward_ids: [5],
+          ai_analysis: { category: 'water leakage', severity: 'low', explanation: 'Minor leak from municipal hydrant.', confidence: 0.85, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [500, 450, 700, 550], label: 'water leakage' } },
+          dedupe_hash: 'mock-dedupe-29'
+        },
+        {
+          id: 'mock-report-30',
+          created_at: new Date(Date.now() - 0.2 * 24 * 60 * 60 * 1000).toISOString(),
+          reporter_id: 'mock-reporter-uuid-8',
+          image_url: 'https://picsum.photos/seed/drain-6/800/600',
+          description: 'Heavy rain caused the drain to overflow into nearby shops.',
+          latitude: 12.9705,
+          longitude: 77.7505,
+          category: 'drainage',
+          severity: 'high',
+          status: 'resolved',
+          ward_ids: [5],
+          ai_analysis: { category: 'drainage', severity: 'high', explanation: 'Severe drain failure causing property damage.', confidence: 0.96, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 100, 900, 900], label: 'drainage' } },
+          dedupe_hash: 'mock-dedupe-30',
+          after_image_url: 'https://picsum.photos/seed/resolve-30/800/600',
+          worker_notes: 'Drain unblocked and emergency pumping completed.'
         }
       ];
 
@@ -487,6 +744,111 @@ class MockSupabase {
           action_type: 'resolve',
           after_image_url: 'https://picsum.photos/seed/resolve-12/800/600',
           worker_notes: 'Valve tightened and sealed.'
+        },
+        {
+          id: 'mock-hist-7',
+          report_id: 'mock-report-17',
+          from_status: 'open',
+          to_status: 'in_progress',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'investigate',
+          worker_notes: 'Investigating illegal dumping at old bakery.'
+        },
+        {
+          id: 'mock-hist-8',
+          report_id: 'mock-report-17',
+          from_status: 'in_progress',
+          to_status: 'resolved',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 5.8 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'resolve',
+          after_image_url: 'https://picsum.photos/seed/resolve-17/800/600',
+          worker_notes: 'Waste cleared and area sanitized.'
+        },
+        {
+          id: 'mock-hist-9',
+          report_id: 'mock-report-19',
+          from_status: 'open',
+          to_status: 'in_progress',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 5.5 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'investigate',
+          worker_notes: 'Checking water seeping through asphalt.'
+        },
+        {
+          id: 'mock-hist-10',
+          report_id: 'mock-report-19',
+          from_status: 'in_progress',
+          to_status: 'resolved',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'resolve',
+          after_image_url: 'https://picsum.photos/seed/resolve-19/800/600',
+          worker_notes: 'Underground pipe joint fixed.'
+        },
+        {
+          id: 'mock-hist-11',
+          report_id: 'mock-report-24',
+          from_status: 'open',
+          to_status: 'in_progress',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 2.8 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'investigate',
+          worker_notes: 'Checking broken tap.'
+        },
+        {
+          id: 'mock-hist-12',
+          report_id: 'mock-report-24',
+          from_status: 'in_progress',
+          to_status: 'resolved',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 2.5 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'resolve',
+          after_image_url: 'https://picsum.photos/seed/resolve-24/800/600',
+          worker_notes: 'Tap fixture replaced.'
+        },
+        {
+          id: 'mock-hist-13',
+          report_id: 'mock-report-27',
+          from_status: 'open',
+          to_status: 'in_progress',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 1.2 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'investigate',
+          worker_notes: 'Hazardous waste team dispatched.'
+        },
+        {
+          id: 'mock-hist-14',
+          report_id: 'mock-report-27',
+          from_status: 'in_progress',
+          to_status: 'resolved',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'resolve',
+          after_image_url: 'https://picsum.photos/seed/resolve-27/800/600',
+          worker_notes: 'Hazardous waste team dispatched and cleared.'
+        },
+        {
+          id: 'mock-hist-15',
+          report_id: 'mock-report-30',
+          from_status: 'open',
+          to_status: 'in_progress',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 0.15 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'investigate',
+          worker_notes: 'Emergency pump requested.'
+        },
+        {
+          id: 'mock-hist-16',
+          report_id: 'mock-report-30',
+          from_status: 'in_progress',
+          to_status: 'resolved',
+          changed_by: 'mock-user-id-1',
+          changed_at: new Date(Date.now() - 0.1 * 24 * 60 * 60 * 1000).toISOString(),
+          action_type: 'resolve',
+          after_image_url: 'https://picsum.photos/seed/resolve-30/800/600',
+          worker_notes: 'Drain unblocked and emergency pumping completed.'
         }
       ];
 
@@ -504,6 +866,20 @@ class MockSupabase {
           rating: 4,
           comment: 'Water leak stopped. Glad it was handled within a day.',
           created_at: new Date(Date.now() - 0.7 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'mock-fb-3',
+          report_id: 'mock-report-17',
+          rating: 4,
+          comment: 'Good work, area looks clean now.',
+          created_at: new Date(Date.now() - 5.7 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'mock-fb-4',
+          report_id: 'mock-report-30',
+          rating: 5,
+          comment: 'Thanks for the quick emergency response!!',
+          created_at: new Date(Date.now() - 0.05 * 24 * 60 * 60 * 1000).toISOString()
         }
       ];
 
@@ -526,7 +902,7 @@ class MockSupabase {
 
     if (tableName === 'worker_profiles') {
       const defaultProfiles = [
-        { id: 'mock-user-id-1', ward_id: 1 }
+        { id: 'mock-user-id-1', ward_ids: [1] }
       ];
       return {
         select: (_fields?: string) => {
@@ -534,9 +910,18 @@ class MockSupabase {
             data: defaultProfiles,
             error: null as any,
             eq(col: string, val: any) {
-              this.data = this.data.filter((i: any) => i[col] === val);
-              return this;
-            },
+                this.data = this.data.filter((i: any) => i[col] === val);
+                return this;
+              },
+              contains(col: string, arr: any[]) {
+                this.data = this.data.filter((i: any) => {
+                  if (Array.isArray(i[col])) {
+                     return arr.some(v => i[col].includes(v));
+                  }
+                  return false;
+                });
+                return this;
+              },
             single() {
               return Promise.resolve({ data: this.data[0] || null, error: this.error });
             },
@@ -577,7 +962,7 @@ class MockSupabase {
           ];
           items = items.map(item => ({
             ...item,
-            wards: defaultWards.find(w => w.id === item.ward_id) || { name: 'Unknown Ward' }
+            wards: defaultWards.find(w => item.ward_ids && item.ward_ids.includes(w.id)) || { name: 'Unknown Ward' }
           }));
         }
         
@@ -613,18 +998,45 @@ class MockSupabase {
         return builder;
       },
       insert: (payload: any) => {
-        const items = getItems();
-        const payloadArray = Array.isArray(payload) ? payload : [payload];
-        const newRecords = payloadArray.map(p => ({
-          id: Math.random().toString(36).substring(2, 15),
-          created_at: new Date().toISOString(),
-          ...p
-        }));
-        items.push(...newRecords);
-        setItems(items);
-        console.log(`[Mock Supabase DB] Inserted records into ${tableName}:`, newRecords);
-        return Promise.resolve({ data: newRecords, error: null });
-      },
+          const items = getItems();
+          const payloadArray = Array.isArray(payload) ? payload : [payload];
+          const newRecords = payloadArray.map(p => ({
+            id: Math.random().toString(36).substring(2, 15),
+            created_at: new Date().toISOString(),
+            ...p
+          }));
+          items.push(...newRecords);
+          setItems(items);
+          console.log(`[Mock Supabase DB] Inserted records into ${tableName}:`, newRecords);
+
+          // Simulate AI Triage Delay if this is a new report
+          if (tableName === 'reports' && newRecords[0].status === 'pending_triage') {
+            setTimeout(() => {
+              const currentItems = getItems();
+              const idx = currentItems.findIndex(i => i.id === newRecords[0].id);
+              if (idx > -1) {
+                // Mock the triage result (make it High Severity for the demo)
+                currentItems[idx].status = 'open';
+                currentItems[idx].severity = 'high';
+                currentItems[idx].category = 'emergency';
+                currentItems[idx].ai_analysis = {
+                  category: 'emergency',
+                  severity: 'high',
+                  explanation: '[Simulated Mock Triage] Automatic classification: High severity incident detected.',
+                  confidence: 0.99,
+                  isValidCivicIssue: true,
+                  isBorderline: false
+                };
+                setItems(currentItems);
+
+                // Dispatch event to trigger Worker notification
+                window.dispatchEvent(new CustomEvent('mock-high-severity-alert', { detail: currentItems[idx] }));
+              }
+            }, 3000); // 3-second simulated processing
+          }
+
+          return Promise.resolve({ data: newRecords, error: null });
+        },
       update: (payload: any) => {
         const builder = {
           eq: (col: string, val: any) => {

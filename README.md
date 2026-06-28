@@ -94,7 +94,7 @@ Community Hero uses Supabase PostgreSQL. Below are the core tables utilized duri
 ### Mode Options
 
 Community Hero supports two modes of operation:
-1.  **Mock Mode (Default Fallback)**: Runs entirely locally without needing Supabase or Gemini credentials. Uses browser `localStorage` as a mock database and pre-seeds it with 15 realistic reports so the dashboard, map, and worker screens are fully populated out-of-the-box!
+1.  **Mock Mode (Default Fallback)**: Runs entirely locally without needing Supabase or Gemini credentials. Uses browser `localStorage` as a mock database and pre-seeds it with 30 realistic reports so the dashboard, map, and worker screens are fully populated out-of-the-box!
 2.  **Real Mode**: Connects to your live Supabase project and Gemini API for real AI vision triage and storage.
 
 ---
@@ -148,7 +148,7 @@ Follow these steps to experience the complete report, triage, resolution, and fe
 ### Step 1: Explore Dashboard & Heatmap
 1. Open the application at `http://localhost:5173`.
 2. Observe the **Explore** and **Stats** tabs.
-3. The dashboard is populated with **15 realistic mock reports** spanning all 5 wards and severities.
+3. The dashboard is populated with **30 realistic mock reports** spanning all 5 wards and severities.
 4. Click on pins on the map to see details, or view the charts showing Category Breakdown and Avg Resolution times.
 
 ### Step 2: File a Citizen Report
@@ -196,7 +196,8 @@ Follow these steps to experience the complete report, triage, resolution, and fe
 *   [x] **Duplicate Detection**: Prevent identical issues within a 5-minute time and 100m spatial boundary.
 *   [x] **Abuse Guards**: Add rate limiting per IP and reporter ID, and reject payloads over 1.5MB.
 *   [x] **Robust Error Handling**: Handle geolocation denied/unsupported, database query errors with retry, and Gemini API rate-limits.
-*   [x] **Demo Seeding**: Seed 15 realistic reports across all 5 wards and severities in mock and production mode.
+*   [x] **Demo Seeding**: Seed 30 realistic reports across all 5 wards and severities in mock and production mode.
+*   [x] **Advanced Search & Route Engine**: Implemented cross-role search filtering and worker route planning using Haversine nearest-neighbor pathfinding.
 
 ---
 

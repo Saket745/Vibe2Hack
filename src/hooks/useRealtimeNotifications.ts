@@ -24,11 +24,13 @@ export function useRealtimeNotifications() {
       // Always show the in-app toast
       showToast(title, 'info');
 
-      // Trigger the native browser notification if permissions were granted
-      NotificationService.sendNotification(title, {
-        body,
-        vibrate: [200, 100, 200],
-      } as NotificationOptions & { vibrate?: number[] });
+      // Create internal notification
+      NotificationService.createNotification({
+        user_id: reporterId || 'unknown',
+        type: 'STATUS_UPDATE',
+        title,
+        message: body,
+      });
     }
   };
 
@@ -82,12 +84,49 @@ export function useRealtimeNotifications() {
       }
     };
     
+    const handleThankCitizen = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { reporterId: eventReporterId } = customEvent.detail;
+      
+      if (eventReporterId === reporterId) {
+        showToast('A worker thanked you for your report!', 'info');
+        NotificationService.createNotification({
+          user_id: reporterId,
+          type: 'WORKER_THANKED',
+          title: 'Civic Gratitude ❤️',
+          message: 'A worker has expressed their gratitude for your contribution to the community.'
+        });
+      }
+    };
+
+    const handleHighSeverityAlert = async (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const report = customEvent.detail;
+
+      // Check if we are logged in as a worker
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        showToast('CRITICAL: New High-Severity Incident', 'error');
+        NotificationService.createNotification({
+          user_id: session.user.id,
+          type: 'HIGH_SEVERITY_ALERT',
+          title: 'CRITICAL: High Severity Incident',
+          message: `A new ${report.category?.toUpperCase() || 'EMERGENCY'} incident was reported. Immediate action required.`,
+          related_report_id: report.id
+        });
+      }
+    };
+
     window.addEventListener('mock-status-update', handleMockUpdate);
+    window.addEventListener('mock-thank-citizen', handleThankCitizen);
+    window.addEventListener('mock-high-severity-alert', handleHighSeverityAlert);
 
     // Cleanup subscription on unmount
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('mock-status-update', handleMockUpdate);
+      window.removeEventListener('mock-thank-citizen', handleThankCitizen);
+      window.removeEventListener('mock-high-severity-alert', handleHighSeverityAlert);
     };
   }, []);
 }
