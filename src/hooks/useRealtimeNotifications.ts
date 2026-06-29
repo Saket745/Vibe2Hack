@@ -4,7 +4,7 @@ import { NotificationService } from '../lib/NotificationService';
 import { showToast } from '../lib/toast';
 
 export function useRealtimeNotifications() {
-  const handleStatusChange = (newStatus: string, oldStatus: string) => {
+  const handleStatusChange = (newStatus: string, oldStatus: string, reporterId: string) => {
     // Only trigger if the status actually changed
     if (newStatus !== oldStatus) {
       let title = 'Report Update';
@@ -64,7 +64,7 @@ export function useRealtimeNotifications() {
           const newStatus = payload.new.status;
           const oldStatus = payload.old.status;
 
-          handleStatusChange(newStatus, oldStatus);
+          handleStatusChange(newStatus, oldStatus, reporterId);
         }
       )
       .subscribe((status: any) => {
@@ -80,7 +80,7 @@ export function useRealtimeNotifications() {
       
       // Only process if it belongs to this local anonymous reporter
       if (eventReporterId === reporterId) {
-        handleStatusChange(newStatus, oldStatus);
+        handleStatusChange(newStatus, oldStatus, reporterId);
       }
     };
     

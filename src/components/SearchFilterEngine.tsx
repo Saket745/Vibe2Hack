@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Filter, Search, X } from 'lucide-react';
 
 export interface FilterState {
@@ -16,7 +16,7 @@ interface SearchFilterEngineProps {
   onFilterChange: (filters: FilterState) => void;
 }
 
-export default function SearchFilterEngine({ role, onFilterChange }: SearchFilterEngineProps) {
+const SearchFilterEngine = memo(function SearchFilterEngine({ role, onFilterChange }: SearchFilterEngineProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     keyword: '',
@@ -169,4 +169,6 @@ export default function SearchFilterEngine({ role, onFilterChange }: SearchFilte
       )}
     </div>
   );
-}
+});
+
+export default SearchFilterEngine;

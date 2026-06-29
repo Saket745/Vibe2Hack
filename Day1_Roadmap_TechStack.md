@@ -37,9 +37,10 @@ still worth knowing.
   Day 2 when the resolution flow needs it.
 
 ### AI layer
-- **Gemini API** (`@google/genai` SDK), called from a **server-side function** — never call
-  Gemini directly from the browser, your API key leaks. Use a Vercel serverless function
-  (`/api/triage.ts`) since Vercel is already connected — no need for a full Express server.
+- **Gemini API** (`@google/genai` SDK), called from **server-side functions** — never call
+  Gemini directly from the browser, your API key leaks. We expose exactly two endpoints:
+  1. `/api/triage.ts` (for citizen report processing)
+  2. `/api/copilot.ts` (for admin analytics, utilizing the `CopilotContextBuilder` to safely limit and anonymize DB context).
 - Use **structured JSON output** (response schema) for every Gemini call — never regex-parse
   free text. This is the single biggest reliability win for a one-day build.
 - Disable `thinking` (`thinking_level: minimal`) on segmentation calls for speed.

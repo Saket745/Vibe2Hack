@@ -1,68 +1,39 @@
-# Community Hero: Demo Walkthrough Script
+# Community Hero — 5-Minute Demo Script
 
-This script is designed for a 3-5 minute live demonstration, ensuring all core features (Citizen Reporting, AI Triage, Worker Resolution, and Data Visualisation) are presented smoothly and in an impactful way.
-
-## Preparations (Before the Demo)
-1. Ensure the app is running (`.\start-dev.bat`) and available at `http://localhost:5173`.
-2. Clear `localStorage` and refresh the page to ensure exactly 30 seeded mock reports are loaded.
-3. Have a sample picture of a pothole or garbage ready on your desktop to upload.
+> **Speaker Note:** Keep the pace brisk. Don't explain *how* the code works during the demo; focus entirely on the *value* it provides to the Citizen, the Worker, and the Administrator.
 
 ---
 
-## The Script (Start to Finish)
+## 0:00 - Introduction & The Problem
+**Speaker:** "Welcome to Community Hero. Every year, cities waste millions of dollars and thousands of hours manually triaging civic complaints. Citizens get frustrated because they never hear back, and workers get dispatched to the wrong locations. Today, we're solving this with an open, AI-driven operations platform."
 
-### Part 1: The Citizen's Perspective (Report & Triage)
-**Goal:** Show how frictionless it is for a citizen to report an issue, and how AI triages it instantly without human intervention.
+## 0:45 - The Citizen Flow (Mobile/Web)
+*(Action: Open the Citizen App and navigate to the Report Tab)*
+**Speaker:** "Let's start with the citizen. I'm walking down the street and see a massive pothole. I don't need to create an account or remember a password."
+*(Action: Upload the test photo of a pothole, enter description "Huge pothole causing traffic")*
+**Speaker:** "I take a photo. Notice what happens when I hit submit. Instead of going to a human for manual review, our AI Triage layer intercepts the request. In less than two seconds, Gemini Vision analyzes the image, categorizes it as a Pothole, and assesses the severity as High based on the depth and location. It's immediately plotted on the public map."
 
-1. **Start on the Report Tab:**
-   * *"Welcome to Community Hero. As a citizen walking down the street, I notice a severe issue—a massive pothole."*
-2. **Upload & Submit:**
-   * Click the image upload area and select your sample photo.
-   * Type in the description: *"Huge pothole on Commercial Street. Very dangerous for bikes."*
-   * Click **File Civic Report**.
-3. **The AI Magic (Triage):**
-   * Let the audience see the progress steps (Compressing -> Analyzing -> Submitting).
-   * *"Behind the scenes, we compress the image locally, then send it to our serverless endpoint where Gemini Vision AI analyzes it instantly."*
-4. **The Result:**
-   * Once the modal pops up, highlight the **AI Triage Context**.
-   * *"Gemini automatically detected this as a 'Pothole', assessed it as 'High' severity, and even provided a segmentation bounding box overlay on the image. No manual data entry required!"*
+## 2:00 - The Worker Flow & Graceful Degradation
+*(Action: Switch to Worker Tab, log in as worker@downtown.com)*
+**Speaker:** "Now I'm a municipal worker for the Downtown Ward. I log into my dashboard, and my queue is already prioritized by severity and AI confidence."
+*(Action: Open the Health Dashboard briefly)*
+**Speaker:** "Before we resolve it, what if the cell network drops? We've engineered this for the real world." 
+*(Action: Toggle 'Force Offline Mode' in the chaos panel, go back to worker tab, click Resolve)*
+**Speaker:** "I resolve the issue and upload an 'after' photo while standing in a dead zone. The system caches it locally. The moment my connection returns, the sync queue empties, and the database updates seamlessly."
 
-### Part 2: The Command Center (Stats & Explore)
-**Goal:** Show how the city visualizes this incoming data at scale.
+## 3:30 - The Intelligence & Prediction Layer
+*(Action: Switch to Admin Tab, log in as admin)*
+**Speaker:** "Finally, I'm the City Administrator. This dashboard isn't just showing me static charts. Our Incident Intelligence Engine is actively clustering data."
+*(Action: Point to a cluster on the heatmap)*
+**Speaker:** "Look at this cluster in the Downtown Core. Five separate citizens reported water leaks and potholes in the same 500-meter radius over the last two hours. The engine deterministically grouped them and identified a 'Main Pipe Burst' as the likely root cause."
 
-1. **Switch to the Stats Tab (Dashboard):**
-   * *"Now, let's look at the city-wide view. Our dashboard is currently tracking 30 live reports."*
-   * Point out the **Category Breakdown** (bar chart) and **Severity Distribution** (pie chart).
-   * Point out the **Live Issue Mapping**. Mention that our new report is already plotted.
-2. **Switch to the Explore Tab (Advanced Search):**
-   * Open the **Filter Menu**.
-   * Filter by `Category: Pothole` and `Severity: High`.
-   * *"Citizens and admins can use role-based Advanced Filtering to instantly query the database. As you can see, our newly reported pothole is right at the top."*
+## 4:30 - The Operations Copilot
+*(Action: Scroll down to the Operations Copilot)*
+**Speaker:** "To act on this, I don't need to write SQL queries. I can just ask our Operations Copilot."
+*(Action: Type: "Given the recent pipe burst cluster in Downtown, how should I reallocate my teams today?")*
+**Speaker:** "We use a `CopilotContextBuilder` to safely anonymize and compress the database state before sending it to Gemini. This ensures absolute data privacy while giving the AI the context it needs."
+*(Action: Show the AI response recommending worker reallocation)*
+**Speaker:** "The Copilot reads the structured recommendation objects generated by our engine and gives me a concrete reallocation plan."
 
-### Part 3: The Worker's Perspective (Routing & Resolution)
-**Goal:** Show how municipal workers get actionable tasks and optimal routing.
-
-1. **Switch to the Worker Tab:**
-   * Log in as `worker@downtown.com` (password: `password`).
-   * *"Now I'm logged in as a municipal worker for Ward 1. My queue is automatically sorted by SLA, Severity, and Review needs."*
-2. **Route Optimization:**
-   * Click on the **Route Optimization** sub-tab.
-   * *"Instead of driving aimlessly, the app uses a simulated Haversine nearest-neighbor algorithm to plan the most efficient route for resolving my open tickets."*
-3. **Resolving the Issue:**
-   * Go back to the **Action Queue**.
-   * Click **Manage** on the pothole you just reported.
-   * Click **Start Investigation** (moves from Open -> In Progress).
-   * Click **Resolve Issue**. Upload an "after" photo (if you have one, or use a dummy image) and type: *"Pothole filled and sealed with cold mix asphalt."*
-   * Click **Confirm Resolution**.
-
-### Part 4: The Loop Closes (Citizen Feedback)
-**Goal:** Show accountability and closure.
-
-1. **Return to the Explore Tab:**
-   * Find the pothole report (now marked as **Resolved** with a green badge).
-   * *"The citizen can now see the 'After' photo and the worker's notes."*
-2. **Leave Feedback:**
-   * Give it 5 stars, write *"Thank you for the quick fix!"* and click **Submit Feedback**.
-   * *"The loop is closed. Transparency, speed, and accountability—all powered by AI."*
-
-**[End of Demo]**
+## 5:30 - Conclusion
+**Speaker:** "Community Hero isn't just an app. It's an end-to-end municipal nervous system. By combining offline-first reliability, deterministic clustering, and secure AI triage, we're cutting resolution times from weeks to days. Thank you."
