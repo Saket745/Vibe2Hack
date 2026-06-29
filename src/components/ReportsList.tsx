@@ -131,13 +131,25 @@ export default function ReportsList() {
     setLoading(true);
     setError(null);
     try {
-      // Query reports and join wards
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('reports')
-        .select('*, wards(name)')
-        .not('status', 'eq', 'pending_triage')
-        .not('status', 'eq', 'rejected')
-        .order('created_at', { ascending: false });
+        .select('*, wards(name)');
+
+      const statusFilter = filters?.status || 'all';
+
+      // Phase 2.3 - Status filtering
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      } else if (!reporterId) {
+        // If 'all' is selected, we still might want to hide completely rejected/invalid reports from the public feed.
+        // In production, 'pending_triage' is usually hidden from public feed until approved.
+        // BUT if we are viewing our OWN reports (reporterId), we should see them immediately even if pending.
+        query = query
+          .not('status', 'eq', 'pending_triage')
+          .not('status', 'eq', 'rejected');
+      }
+
+      const { data, error: fetchError } = await query.order('created_at', { ascending: false });
 
       if (fetchError) {
         throw fetchError;

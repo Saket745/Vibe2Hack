@@ -94,7 +94,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'open',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: {
             category: 'pothole',
             severity: 'high',
@@ -118,7 +118,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'medium',
           status: 'in_progress',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: {
             category: 'garbage',
             severity: 'medium',
@@ -142,7 +142,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'resolved',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: {
             category: 'streetlight',
             severity: 'low',
@@ -170,7 +170,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: {
             category: 'water leakage',
             severity: 'medium',
@@ -194,7 +194,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'medium',
           status: 'in_progress',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: {
             category: 'drainage',
             severity: 'medium',
@@ -218,7 +218,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'open',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: {
             category: 'streetlight',
             severity: 'high',
@@ -242,7 +242,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'low',
           status: 'open',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: {
             category: 'pothole',
             severity: 'low',
@@ -266,7 +266,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'high',
           status: 'resolved',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: {
             category: 'water leakage',
             severity: 'high',
@@ -292,7 +292,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'needs_manual_review',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: {
             category: 'drainage',
             severity: 'high',
@@ -316,7 +316,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'open',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: {
             category: 'garbage',
             severity: 'high',
@@ -340,7 +340,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'open',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: {
             category: 'streetlight',
             severity: 'low',
@@ -364,7 +364,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'low',
           status: 'resolved',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: {
             category: 'water leakage',
             severity: 'low',
@@ -390,7 +390,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'low',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: {
             category: 'drainage',
             severity: 'low',
@@ -414,7 +414,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'medium',
           status: 'needs_manual_review',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: {
             category: 'pothole',
             severity: 'medium',
@@ -438,7 +438,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'medium',
           status: 'rejected',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: {
             category: 'pothole',
             severity: 'medium',
@@ -462,7 +462,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'open',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: { category: 'pothole', severity: 'high', explanation: 'Deep pothole on a major commercial street.', confidence: 0.96, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [350, 250, 650, 750], label: 'pothole' } },
           dedupe_hash: 'mock-dedupe-16'
         },
@@ -477,7 +477,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'medium',
           status: 'resolved',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: { category: 'garbage', severity: 'medium', explanation: 'Pile of uncollected waste on sidewalk.', confidence: 0.89, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 300, 700, 800], label: 'garbage' } },
           dedupe_hash: 'mock-dedupe-17',
           after_image_url: 'https://picsum.photos/seed/resolve-17/800/600',
@@ -494,7 +494,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'in_progress',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: { category: 'streetlight', severity: 'high', explanation: 'Damaged street infrastructure posing physical hazard.', confidence: 0.94, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 400, 900, 600], label: 'streetlight' } },
           dedupe_hash: 'mock-dedupe-18'
         },
@@ -509,7 +509,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'resolved',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: { category: 'water leakage', severity: 'medium', explanation: 'Subsurface leak causing surface pooling.', confidence: 0.86, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 200, 600, 800], label: 'water leakage' } },
           dedupe_hash: 'mock-dedupe-19',
           after_image_url: 'https://picsum.photos/seed/resolve-19/800/600',
@@ -526,7 +526,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: { category: 'drainage', severity: 'high', explanation: 'Missing manhole cover creates severe fall hazard.', confidence: 0.98, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [450, 400, 650, 600], label: 'drainage' } },
           dedupe_hash: 'mock-dedupe-20'
         },
@@ -541,7 +541,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'low',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: { category: 'pothole', severity: 'low', explanation: 'Cluster of minor surface degradation.', confidence: 0.88, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 300, 700, 700], label: 'pothole' } },
           dedupe_hash: 'mock-dedupe-21'
         },
@@ -556,7 +556,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'in_progress',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: { category: 'garbage', severity: 'high', explanation: 'Massive overflow affecting pedestrian transit.', confidence: 0.95, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [200, 200, 800, 800], label: 'garbage' } },
           dedupe_hash: 'mock-dedupe-22'
         },
@@ -571,7 +571,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'needs_manual_review',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: { category: 'streetlight', severity: 'low', explanation: 'Lamp operational during daylight hours.', confidence: 0.68, isValidCivicIssue: true, isBorderline: true, rejectionReason: 'Low confidence in hazard level.', segmentation_mask: { box_2d: [100, 450, 400, 550], label: 'streetlight' } },
           dedupe_hash: 'mock-dedupe-23'
         },
@@ -586,7 +586,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'resolved',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: { category: 'water leakage', severity: 'medium', explanation: 'Broken tap causing continuous water waste.', confidence: 0.91, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 400, 600, 600], label: 'water leakage' } },
           dedupe_hash: 'mock-dedupe-24',
           after_image_url: 'https://picsum.photos/seed/resolve-24/800/600',
@@ -603,7 +603,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'medium',
           status: 'open',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: { category: 'drainage', severity: 'medium', explanation: 'Sediment blockage in drainage grate.', confidence: 0.89, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 200, 700, 800], label: 'drainage' } },
           dedupe_hash: 'mock-dedupe-25'
         },
@@ -618,7 +618,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'in_progress',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: { category: 'pothole', severity: 'high', explanation: 'Large depression indicating potential sinkhole.', confidence: 0.97, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [200, 200, 800, 800], label: 'pothole' } },
           dedupe_hash: 'mock-dedupe-26'
         },
@@ -633,7 +633,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'resolved',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: { category: 'garbage', severity: 'high', explanation: 'Hazardous bio-waste dumped in public space.', confidence: 0.95, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 300, 600, 700], label: 'garbage' } },
           dedupe_hash: 'mock-dedupe-27',
           after_image_url: 'https://picsum.photos/seed/resolve-27/800/600',
@@ -650,7 +650,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'open',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: { category: 'streetlight', severity: 'high', explanation: 'Exposed live wiring at pedestrian height.', confidence: 0.99, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 400, 800, 600], label: 'streetlight' } },
           dedupe_hash: 'mock-dedupe-28'
         },
@@ -665,7 +665,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'low',
           status: 'in_progress',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: { category: 'water leakage', severity: 'low', explanation: 'Minor leak from municipal hydrant.', confidence: 0.85, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [500, 450, 700, 550], label: 'water leakage' } },
           dedupe_hash: 'mock-dedupe-29'
         },
@@ -680,7 +680,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'resolved',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: { category: 'drainage', severity: 'high', explanation: 'Severe drain failure causing property damage.', confidence: 0.96, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 100, 900, 900], label: 'drainage' } },
           dedupe_hash: 'mock-dedupe-30',
           after_image_url: 'https://picsum.photos/seed/resolve-30/800/600',
@@ -1062,7 +1062,18 @@ class MockSupabase {
             return this;
           },
           eq(col: string, val: any) {
-            this.data = this.data.filter(i => (i as any)[col] === val);
+            this.data = this.data.filter(i => {
+              if (col === 'ward_id' && (i as any).ward_ids) {
+                return (i as any).ward_ids.includes(val);
+              }
+              return (i as any)[col] === val;
+            });
+            return this;
+          },
+          not(col: string, op: string, val: any) {
+            if (op === 'eq') {
+              this.data = this.data.filter(i => (i as any)[col] !== val);
+            }
             return this;
           },
           gt(col: string, val: any) {
@@ -1131,7 +1142,7 @@ class MockSupabase {
                 // Dispatch event to trigger Worker notification
                 window.dispatchEvent(new CustomEvent('mock-high-severity-alert', { detail: currentItems[idx] }));
               }
-            }, 3000); // 3-second simulated processing
+            }, 0); // 0ms simulated processing (fast for E2E)
           }
 
           return Promise.resolve({ data: newRecords, error: null });
