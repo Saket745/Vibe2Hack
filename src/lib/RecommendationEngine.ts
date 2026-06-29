@@ -1,4 +1,4 @@
-import { IncidentCluster } from './IncidentIntelligenceEngine';
+import type { IncidentCluster } from './IncidentIntelligenceEngine';
 
 export interface RecommendationAction {
   type: 'REALLOCATE_WORKERS' | 'ESCALATE_ISSUE' | 'DISPATCH_EMERGENCY' | 'SCHEDULE_MAINTENANCE' | 'INFORM_PUBLIC';

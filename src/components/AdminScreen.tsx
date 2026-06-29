@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { AuthorizationService, type UserProfile, type AuditLog } from '../lib/AuthorizationService';
+import { AuthorizationService, type UserProfile } from '../lib/AuthorizationService';
 import { SystemMonitoringService, type ApiMetric, type ErrorLog } from '../lib/SystemMonitoringService';
 import { LocationService, type City } from '../lib/LocationService';
 import { IntegrationService, type Integration, type IntegrationLog } from '../lib/IntegrationService';
@@ -16,7 +16,7 @@ export default function AdminScreen() {
   
   const [metrics, setMetrics] = useState<ApiMetric[]>([]);
   const [errors, setErrors] = useState<ErrorLog[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+
   
   const [cities, setCities] = useState<City[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -29,7 +29,7 @@ export default function AdminScreen() {
       if (admin) {
         fetchWorkers();
         refreshSystemLogs();
-        setAuditLogs(AuthorizationService.getAuditLogs());
+
         setCities(LocationService.getCities());
         setIntegrations(IntegrationService.getIntegrations());
         setIntegrationLogs(IntegrationService.getLogs());

@@ -313,7 +313,7 @@ export default function WorkerScreen() {
         try {
           const errBody = await res.json();
           if (errBody?.error) errMsg = errBody.error;
-        } catch (_) { /* ignore JSON parse failure */ }
+        } catch (_err) { /* ignore JSON parse failure */ }
         throw new Error(errMsg);
       }
 

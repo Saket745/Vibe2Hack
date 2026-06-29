@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CopilotContextBuilder } from '../lib/CopilotContextBuilder';
 
 export function CopilotWidget() {
@@ -35,7 +35,7 @@ export function CopilotWidget() {
       } else {
         setChatHistory(prev => [...prev, { role: 'copilot', text: `Error: ${data.error}` }]);
       }
-    } catch (err) {
+    } catch (_err) {
       setChatHistory(prev => [...prev, { role: 'copilot', text: 'Failed to reach Copilot service.' }]);
     } finally {
       setIsLoading(false);

@@ -98,7 +98,7 @@ async function runSeed() {
     };
     // Attempt insert, but in this schema it might be handled differently.
     // For Vibe2Hack, wards might not be in supabase yet. We'll simulate standard insertion.
-    const { data, error } = await supabase.from('wards').insert(wardPayload).select().single();
+    const { data } = await supabase.from('wards').insert(wardPayload).select().single();
     wardIds.push(data?.id || (wIndex + 1));
     wIndex++;
   }

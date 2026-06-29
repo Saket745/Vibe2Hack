@@ -125,7 +125,7 @@ export class RuleEngine {
     }, obj);
   }
 
-  private executeActions(actions: RuleAction[], contextData: any): void {
+  private executeActions(actions: RuleAction[], _contextData: any): void {
     for (const action of actions) {
       if (action.type === 'notify') {
         console.log(`[RuleEngine] Dispatching Notification:`, action.payload.message);

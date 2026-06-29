@@ -187,11 +187,7 @@ class IntegrationServiceImpl {
         });
         
         // Also log to SystemMonitoringService as a critical failure
-        SystemMonitoringService.logError(`Integration Delivery Failed: ${integration.name}`, 'IntegrationService', {
-          logId,
-          eventName,
-          attempts: attempt
-        });
+        SystemMonitoringService.logError(new Error(`Integration Delivery Failed: ${integration.name}`), 'IntegrationService');
       }
     }
   }

@@ -1,5 +1,5 @@
-import { ReportPayload, IncidentCluster } from './IncidentIntelligenceEngine';
-import { StructuredRecommendation } from './RecommendationEngine';
+import type { ReportPayload, IncidentCluster } from './IncidentIntelligenceEngine';
+import type { StructuredRecommendation } from './RecommendationEngine';
 
 export interface CopilotContext {
   activeIncidentsCount: number;

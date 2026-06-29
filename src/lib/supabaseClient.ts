@@ -75,7 +75,7 @@ class MockSupabase {
           if (Array.isArray(parsed) && parsed.length >= 30) {
             return; // Already seeded with the latest data
           }
-        } catch (e) {
+        } catch (_e) {
           // If parsing fails, fall through and re-seed
         }
       }
@@ -925,7 +925,7 @@ class MockSupabase {
             data: getProfiles(),
             error: null as any,
             eq(col: string, val: any) {
-                this.data = this.data.filter((i: any) => i[col] === val);
+                this.data = this.data.filter((i: any) => (i as any)[col] === val);
                 return this;
               },
               contains(col: string, arr: any[]) {
@@ -993,12 +993,12 @@ class MockSupabase {
 
     if (tableName === 'wards') {
       return {
-        select: (fields?: string) => {
+        select: (_fields?: string) => {
           const builder = {
             data: LocationService.getWards(),
             error: null as any,
             eq(col: string, val: any) {
-              this.data = this.data.filter(i => i[col] === val);
+              this.data = this.data.filter(i => (i as any)[col] === val);
               return this;
             },
             single() {
@@ -1015,12 +1015,12 @@ class MockSupabase {
     
     if (tableName === 'cities') {
       return {
-        select: (fields?: string) => {
+        select: (_fields?: string) => {
           const builder = {
             data: LocationService.getCities(),
             error: null as any,
             eq(col: string, val: any) {
-              this.data = this.data.filter(i => i[col] === val);
+              this.data = this.data.filter(i => (i as any)[col] === val);
               return this;
             },
             single() {
@@ -1062,7 +1062,7 @@ class MockSupabase {
             return this;
           },
           eq(col: string, val: any) {
-            this.data = this.data.filter(i => i[col] === val);
+            this.data = this.data.filter(i => (i as any)[col] === val);
             return this;
           },
           gt(col: string, val: any) {

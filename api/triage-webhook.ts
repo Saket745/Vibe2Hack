@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ message: 'Ignored report not in pending state' });
     }
 
-    const { id: reportId, image_url: tempStoragePath, reporter_id: reporterId, description, latitude, longitude } = record;
+    const { id: reportId, image_url: tempStoragePath, reporter_id: reporterId, latitude, longitude } = record;
 
     if (!tempStoragePath) {
       console.warn(`[Webhook Error] Report ${reportId} missing image_url (tempStoragePath)`);
