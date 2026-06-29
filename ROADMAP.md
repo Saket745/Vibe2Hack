@@ -85,3 +85,5 @@ Error tracking and alerting
 Phase 10: Integration & Expansion  
 Integrate with city services and APIs  
 Multi-city support with ward management  
+Phase 11: AI Operations & Decision Intelligence  
+Build a new intelligence layer comprising PredictionService, Incident Intelligence Engine, RecommendationEngine, RuleEngine, and an AI Copilot.

@@ -10,20 +10,57 @@
 
 ```mermaid
 graph TD
-    A[Citizen Mobile/Web App] -->|1. Takes Photo & GPS| B[Client-Side Compression]
-    B -->|2. Upload Image| C[Supabase Storage]
-    B -->|3. Submit Report| D[Vercel Serverless Function /api/triage]
-    D -->|4. Call Vision AI| E[Gemini API]
-    E -->|5. Structured JSON| D
-    D -->|6. Store Metadata & AI Result| F[(Supabase PostgreSQL)]
-    F -->|7. Load Reports| A
-    G[Admin/Worker Dashboard] -->|8. Manage & Update Status| F
+
+    subgraph Client
+        Citizen["Citizen App"]
+        Admin["Admin Dashboard"]
+    end
+
+    subgraph APIs
+        TriageAPI["/api/triage"]
+        CopilotAPI["/api/copilot"]
+    end
+
+    subgraph "AI Layer"
+        Gemini["Gemini API"]
+        ContextBuilder["Copilot Context Builder"]
+    end
+
+    subgraph "Business Services"
+        Intelligence["Incident Intelligence Engine"]
+        Prediction["Prediction Service"]
+        Recommendation["Recommendation Engine"]
+        RuleEngine["Rule Engine"]
+        Routing["Worker Routing"]
+    end
+
+    subgraph Data
+        DB[("Supabase Postgres & Storage")]
+    end
+
+    %% Reporting Flow
+    Citizen -->|"Report & Photo"| TriageAPI
+    TriageAPI --> Gemini
+    Gemini -->|"Structured JSON"| Intelligence
+    Intelligence --> Prediction
+    Intelligence --> Recommendation
+    Intelligence --> RuleEngine
+    RuleEngine --> Routing
+    Routing --> DB
+    Intelligence --> DB
+    DB --> Admin
+
+    %% Copilot Flow
+    Admin -->|"Admin Question"| CopilotAPI
+    CopilotAPI -->|"Prepare & Anonymize"| ContextBuilder
+    ContextBuilder -->|"Structured Context"| Gemini
+    Gemini -->|"Actionable Answer"| Admin
 ```
 
 ### Key Technical Specs
 *   **Frontend**: React (TypeScript) + Vite + Tailwind CSS
 *   **Backend**: Supabase (PostgreSQL, Auth, Object Storage)
-*   **AI Layer**: Gemini API via `@google/genai` (called via serverless function to prevent API key leaks)
+*   **AI Layer**: Gemini API via `@google/genai` (called strictly via serverless functions `/api/triage` and `/api/copilot` to prevent API key leaks)
 *   **Mapping**: Leaflet + React-Leaflet (zero-cost API key alternative to Google Maps / Mapbox)
 *   **Data Visualization**: Recharts (for KPIs and ward performance tracking)
 *   **Identity**: Anonymous UUID stored in `localStorage` for citizen reports to reduce signup friction in initial demos.
@@ -51,7 +88,13 @@ graph TD
 *   **Color-Coded Heatmap/Pins**: Plots reported issues on an OpenStreetMap base map using category-specific pins.
 *   **KPI Metrics Dashboard**: Displays real-time counts, average resolution times, and severity breakdowns using Recharts.
 
-### 4. Community Verification (Future Phase)
+### 4. AI Operations & Decision Intelligence
+*   **CopilotContextBuilder**: Safely truncates, anonymizes, and summarizes database context before prompting the AI, ensuring token limits and privacy boundaries are respected.
+*   **Operations Copilot**: An admin-facing Gemini integration that securely answers platform analytics questions and explains recommendations.
+*   **Incident Intelligence Pipeline**: Deterministically groups incidents spatially and temporally, identifying root causes (e.g., multiple "water leak" reports forming a "pipe burst" incident cluster).
+*   **Prediction & Recommendations**: Provides deterministic risk heatmaps and structured worker reallocation suggestions.
+
+### 5. Community Verification (Future Phase)
 *   **Peer Validation**: Neighbors can "upvote" or "confirm" reports to filter out duplicates or false alarms.
 *   **Gamification**: Users earn badges (e.g., "First Reporter") and trust-scores to increase report credibility.
 
@@ -198,6 +241,12 @@ Follow these steps to experience the complete report, triage, resolution, and fe
 *   [x] **Robust Error Handling**: Handle geolocation denied/unsupported, database query errors with retry, and Gemini API rate-limits.
 *   [x] **Demo Seeding**: Seed 30 realistic reports across all 5 wards and severities in mock and production mode.
 *   [x] **Advanced Search & Route Engine**: Implemented cross-role search filtering and worker route planning using Haversine nearest-neighbor pathfinding.
+
+### 📅 Day 4: AI Operations & Decision Intelligence (Phase 11)
+*   [x] **Incident Intelligence**: Created duplicate detection, spatial clustering, and temporal clustering pipeline to find root causes.
+*   [x] **Prediction & Rules**: Built deterministic `PredictionService` for heatmaps and `RuleEngine` for automated notifications and escalations.
+*   [x] **Operations Copilot**: Built `CopilotContextBuilder` for secure data prep and deployed `/api/copilot` for admin natural-language querying.
+*   [x] **Recommendation Engine**: Structured recommendation objects for worker reallocations and priority actions.
 
 ---
 

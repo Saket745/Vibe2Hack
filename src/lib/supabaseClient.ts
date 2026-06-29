@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { SystemMonitoringService } from './SystemMonitoringService';
+import { LocationService } from './LocationService';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -17,7 +19,7 @@ class MockSupabase {
     })
   };
 
-  channel(name: string) {
+  channel(_name: string) {
     const builder = {
       on: () => builder,
       subscribe: () => builder
@@ -25,7 +27,7 @@ class MockSupabase {
     return builder;
   }
 
-  removeChannel(channel: any) {
+  removeChannel(_channel: any) {
     // no-op
   }
 
@@ -38,7 +40,12 @@ class MockSupabase {
     },
     signInWithPassword: async ({ email }: any) => {
       console.log(`[Mock Auth] Sign In: ${email}`);
-      const user = { id: 'mock-user-id-1', email };
+      let user;
+      if (email === 'admin@mock.city') {
+        user = { id: 'mock-admin-id-1', email };
+      } else {
+        user = { id: 'mock-user-id-1', email };
+      }
       localStorage.setItem('mock_session', JSON.stringify({ user }));
       return { data: { user, session: { user } }, error: null };
     },
@@ -68,7 +75,7 @@ class MockSupabase {
           if (Array.isArray(parsed) && parsed.length >= 30) {
             return; // Already seeded with the latest data
           }
-        } catch (e) {
+        } catch (_e) {
           // If parsing fails, fall through and re-seed
         }
       }
@@ -87,7 +94,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'open',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: {
             category: 'pothole',
             severity: 'high',
@@ -111,7 +118,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'medium',
           status: 'in_progress',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: {
             category: 'garbage',
             severity: 'medium',
@@ -135,7 +142,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'resolved',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: {
             category: 'streetlight',
             severity: 'low',
@@ -163,7 +170,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: {
             category: 'water leakage',
             severity: 'medium',
@@ -187,7 +194,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'medium',
           status: 'in_progress',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: {
             category: 'drainage',
             severity: 'medium',
@@ -211,7 +218,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'open',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: {
             category: 'streetlight',
             severity: 'high',
@@ -235,7 +242,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'low',
           status: 'open',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: {
             category: 'pothole',
             severity: 'low',
@@ -259,7 +266,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'high',
           status: 'resolved',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: {
             category: 'water leakage',
             severity: 'high',
@@ -285,7 +292,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'needs_manual_review',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: {
             category: 'drainage',
             severity: 'high',
@@ -309,7 +316,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'open',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: {
             category: 'garbage',
             severity: 'high',
@@ -333,7 +340,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'open',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: {
             category: 'streetlight',
             severity: 'low',
@@ -357,7 +364,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'low',
           status: 'resolved',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: {
             category: 'water leakage',
             severity: 'low',
@@ -383,7 +390,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'low',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: {
             category: 'drainage',
             severity: 'low',
@@ -407,7 +414,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'medium',
           status: 'needs_manual_review',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: {
             category: 'pothole',
             severity: 'medium',
@@ -431,7 +438,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'medium',
           status: 'rejected',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: {
             category: 'pothole',
             severity: 'medium',
@@ -455,7 +462,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'open',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: { category: 'pothole', severity: 'high', explanation: 'Deep pothole on a major commercial street.', confidence: 0.96, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [350, 250, 650, 750], label: 'pothole' } },
           dedupe_hash: 'mock-dedupe-16'
         },
@@ -470,7 +477,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'medium',
           status: 'resolved',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: { category: 'garbage', severity: 'medium', explanation: 'Pile of uncollected waste on sidewalk.', confidence: 0.89, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 300, 700, 800], label: 'garbage' } },
           dedupe_hash: 'mock-dedupe-17',
           after_image_url: 'https://picsum.photos/seed/resolve-17/800/600',
@@ -487,7 +494,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'in_progress',
-          ward_ids: [1],
+          ward_id: 1,
           ai_analysis: { category: 'streetlight', severity: 'high', explanation: 'Damaged street infrastructure posing physical hazard.', confidence: 0.94, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 400, 900, 600], label: 'streetlight' } },
           dedupe_hash: 'mock-dedupe-18'
         },
@@ -502,7 +509,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'resolved',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: { category: 'water leakage', severity: 'medium', explanation: 'Subsurface leak causing surface pooling.', confidence: 0.86, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 200, 600, 800], label: 'water leakage' } },
           dedupe_hash: 'mock-dedupe-19',
           after_image_url: 'https://picsum.photos/seed/resolve-19/800/600',
@@ -519,7 +526,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: { category: 'drainage', severity: 'high', explanation: 'Missing manhole cover creates severe fall hazard.', confidence: 0.98, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [450, 400, 650, 600], label: 'drainage' } },
           dedupe_hash: 'mock-dedupe-20'
         },
@@ -534,7 +541,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'low',
           status: 'open',
-          ward_ids: [2],
+          ward_id: 2,
           ai_analysis: { category: 'pothole', severity: 'low', explanation: 'Cluster of minor surface degradation.', confidence: 0.88, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 300, 700, 700], label: 'pothole' } },
           dedupe_hash: 'mock-dedupe-21'
         },
@@ -549,7 +556,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'in_progress',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: { category: 'garbage', severity: 'high', explanation: 'Massive overflow affecting pedestrian transit.', confidence: 0.95, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [200, 200, 800, 800], label: 'garbage' } },
           dedupe_hash: 'mock-dedupe-22'
         },
@@ -564,7 +571,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'low',
           status: 'needs_manual_review',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: { category: 'streetlight', severity: 'low', explanation: 'Lamp operational during daylight hours.', confidence: 0.68, isValidCivicIssue: true, isBorderline: true, rejectionReason: 'Low confidence in hazard level.', segmentation_mask: { box_2d: [100, 450, 400, 550], label: 'streetlight' } },
           dedupe_hash: 'mock-dedupe-23'
         },
@@ -579,7 +586,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'medium',
           status: 'resolved',
-          ward_ids: [3],
+          ward_id: 3,
           ai_analysis: { category: 'water leakage', severity: 'medium', explanation: 'Broken tap causing continuous water waste.', confidence: 0.91, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 400, 600, 600], label: 'water leakage' } },
           dedupe_hash: 'mock-dedupe-24',
           after_image_url: 'https://picsum.photos/seed/resolve-24/800/600',
@@ -596,7 +603,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'medium',
           status: 'open',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: { category: 'drainage', severity: 'medium', explanation: 'Sediment blockage in drainage grate.', confidence: 0.89, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [400, 200, 700, 800], label: 'drainage' } },
           dedupe_hash: 'mock-dedupe-25'
         },
@@ -611,7 +618,7 @@ class MockSupabase {
           category: 'pothole',
           severity: 'high',
           status: 'in_progress',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: { category: 'pothole', severity: 'high', explanation: 'Large depression indicating potential sinkhole.', confidence: 0.97, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [200, 200, 800, 800], label: 'pothole' } },
           dedupe_hash: 'mock-dedupe-26'
         },
@@ -626,7 +633,7 @@ class MockSupabase {
           category: 'garbage',
           severity: 'high',
           status: 'resolved',
-          ward_ids: [4],
+          ward_id: 4,
           ai_analysis: { category: 'garbage', severity: 'high', explanation: 'Hazardous bio-waste dumped in public space.', confidence: 0.95, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [300, 300, 600, 700], label: 'garbage' } },
           dedupe_hash: 'mock-dedupe-27',
           after_image_url: 'https://picsum.photos/seed/resolve-27/800/600',
@@ -643,7 +650,7 @@ class MockSupabase {
           category: 'streetlight',
           severity: 'high',
           status: 'open',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: { category: 'streetlight', severity: 'high', explanation: 'Exposed live wiring at pedestrian height.', confidence: 0.99, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 400, 800, 600], label: 'streetlight' } },
           dedupe_hash: 'mock-dedupe-28'
         },
@@ -658,7 +665,7 @@ class MockSupabase {
           category: 'water leakage',
           severity: 'low',
           status: 'in_progress',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: { category: 'water leakage', severity: 'low', explanation: 'Minor leak from municipal hydrant.', confidence: 0.85, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [500, 450, 700, 550], label: 'water leakage' } },
           dedupe_hash: 'mock-dedupe-29'
         },
@@ -673,7 +680,7 @@ class MockSupabase {
           category: 'drainage',
           severity: 'high',
           status: 'resolved',
-          ward_ids: [5],
+          ward_id: 5,
           ai_analysis: { category: 'drainage', severity: 'high', explanation: 'Severe drain failure causing property damage.', confidence: 0.96, isValidCivicIssue: true, isBorderline: false, rejectionReason: '', segmentation_mask: { box_2d: [100, 100, 900, 900], label: 'drainage' } },
           dedupe_hash: 'mock-dedupe-30',
           after_image_url: 'https://picsum.photos/seed/resolve-30/800/600',
@@ -901,16 +908,24 @@ class MockSupabase {
     };
 
     if (tableName === 'worker_profiles') {
-      const defaultProfiles = [
-        { id: 'mock-user-id-1', ward_ids: [1] }
-      ];
+      const getProfiles = () => {
+        const stored = localStorage.getItem('mock_db_worker_profiles');
+        if (stored) return JSON.parse(stored);
+        const defaultProfiles = [
+          { id: 'mock-user-id-1', email: 'worker@mock.city', ward_ids: [1], role: 'worker' },
+          { id: 'mock-admin-id-1', email: 'admin@mock.city', ward_ids: [], role: 'admin' }
+        ];
+        localStorage.setItem('mock_db_worker_profiles', JSON.stringify(defaultProfiles));
+        return defaultProfiles;
+      };
+
       return {
         select: (_fields?: string) => {
           const builder = {
-            data: defaultProfiles,
+            data: getProfiles(),
             error: null as any,
             eq(col: string, val: any) {
-                this.data = this.data.filter((i: any) => i[col] === val);
+                this.data = this.data.filter((i: any) => (i as any)[col] === val);
                 return this;
               },
               contains(col: string, arr: any[]) {
@@ -930,21 +945,92 @@ class MockSupabase {
             }
           };
           return builder;
+        },
+        update: (updates: any) => {
+          const builder = {
+            eq(col: string, val: any) {
+              const profiles = getProfiles();
+              const idx = profiles.findIndex((p: any) => p[col] === val);
+              if (idx !== -1) {
+                profiles[idx] = { ...profiles[idx], ...updates };
+                localStorage.setItem('mock_db_worker_profiles', JSON.stringify(profiles));
+              }
+              return { data: profiles, error: null };
+            }
+          };
+          return builder;
+        }
+      };
+    }
+
+    if (tableName === 'admin_audit_logs') {
+      const getLogs = () => {
+        const stored = localStorage.getItem('mock_db_admin_audit_logs');
+        return stored ? JSON.parse(stored) : [];
+      };
+      return {
+        select: (_fields?: string) => {
+          return {
+            order: (_col: string, { ascending }: any) => {
+              const logs = getLogs();
+              if (!ascending) logs.reverse();
+              return { data: logs, error: null };
+            }
+          };
+        },
+        insert: (log: any) => {
+          const logs = getLogs();
+          logs.push({
+            id: 'mock-audit-' + Math.random().toString(36).substr(2, 9),
+            created_at: new Date().toISOString(),
+            ...log
+          });
+          localStorage.setItem('mock_db_admin_audit_logs', JSON.stringify(logs));
+          return { data: [log], error: null };
         }
       };
     }
 
     if (tableName === 'wards') {
-      const defaultWards = [
-        { id: 1, name: 'Ward 1 - Downtown', boundary_coords: { center: { lat: 12.9716, lng: 77.5946 } } },
-        { id: 2, name: 'Ward 2 - Koramangala', boundary_coords: { center: { lat: 12.9352, lng: 77.6245 } } },
-        { id: 3, name: 'Ward 3 - Indiranagar', boundary_coords: { center: { lat: 12.9719, lng: 77.6412 } } },
-        { id: 4, name: 'Ward 4 - Jayanagar', boundary_coords: { center: { lat: 12.9308, lng: 77.5838 } } },
-        { id: 5, name: 'Ward 5 - Whitefield', boundary_coords: { center: { lat: 12.9698, lng: 77.7500 } } }
-      ];
       return {
-        select: (_fields: string) => {
-          return Promise.resolve({ data: defaultWards, error: null });
+        select: (_fields?: string) => {
+          const builder = {
+            data: LocationService.getWards(),
+            error: null as any,
+            eq(col: string, val: any) {
+              this.data = this.data.filter(i => (i as any)[col] === val);
+              return this;
+            },
+            single() {
+              return Promise.resolve({ data: this.data[0] || null, error: this.error });
+            },
+            then(onfulfilled: any) {
+              return Promise.resolve({ data: this.data, error: this.error }).then(onfulfilled);
+            }
+          };
+          return builder;
+        }
+      };
+    }
+    
+    if (tableName === 'cities') {
+      return {
+        select: (_fields?: string) => {
+          const builder = {
+            data: LocationService.getCities(),
+            error: null as any,
+            eq(col: string, val: any) {
+              this.data = this.data.filter(i => (i as any)[col] === val);
+              return this;
+            },
+            single() {
+              return Promise.resolve({ data: this.data[0] || null, error: this.error });
+            },
+            then(onfulfilled: any) {
+              return Promise.resolve({ data: this.data, error: this.error }).then(onfulfilled);
+            }
+          };
+          return builder;
         }
       };
     }
@@ -953,16 +1039,12 @@ class MockSupabase {
       select(fields: string) {
         let items = getItems();
         if (fields.includes('wards')) {
-          const defaultWards = [
-            { id: 1, name: 'Ward 1 - Downtown' },
-            { id: 2, name: 'Ward 2 - Koramangala' },
-            { id: 3, name: 'Ward 3 - Indiranagar' },
-            { id: 4, name: 'Ward 4 - Jayanagar' },
-            { id: 5, name: 'Ward 5 - Whitefield' }
-          ];
+          const allWards = LocationService.getWards();
           items = items.map(item => ({
             ...item,
-            wards: defaultWards.find(w => item.ward_ids && item.ward_ids.includes(w.id)) || { name: 'Unknown Ward' }
+            wards: allWards.find(w => item.ward_ids && item.ward_ids.includes(w.id)) || 
+                   allWards.find(w => item.ward_id === w.id) || 
+                   { name: 'Unknown Ward' }
           }));
         }
         
@@ -980,7 +1062,18 @@ class MockSupabase {
             return this;
           },
           eq(col: string, val: any) {
-            this.data = this.data.filter(i => i[col] === val);
+            this.data = this.data.filter(i => {
+              if (col === 'ward_id' && (i as any).ward_ids) {
+                return (i as any).ward_ids.includes(val);
+              }
+              return (i as any)[col] === val;
+            });
+            return this;
+          },
+          not(col: string, op: string, val: any) {
+            if (op === 'eq') {
+              this.data = this.data.filter(i => (i as any)[col] !== val);
+            }
             return this;
           },
           gt(col: string, val: any) {
@@ -1000,11 +1093,28 @@ class MockSupabase {
       insert: (payload: any) => {
           const items = getItems();
           const payloadArray = Array.isArray(payload) ? payload : [payload];
-          const newRecords = payloadArray.map(p => ({
-            id: Math.random().toString(36).substring(2, 15),
-            created_at: new Date().toISOString(),
-            ...p
-          }));
+          const newRecords = payloadArray.map(p => {
+            let ward_id = p.ward_id;
+            let ward_ids = p.ward_ids;
+            
+            // Auto-assign ward for new reports if missing
+            if (tableName === 'reports' && !ward_id && !ward_ids && p.city_id) {
+              const cityWards = LocationService.getWardsForCity(p.city_id);
+              if (cityWards.length > 0) {
+                // Mock simple distance assignment (just pick the first one for the mock demo)
+                ward_id = cityWards[0].id;
+                ward_ids = [ward_id];
+              }
+            }
+
+            return {
+              id: Math.random().toString(36).substring(2, 15),
+              created_at: new Date().toISOString(),
+              ...p,
+              ward_id,
+              ward_ids
+            };
+          });
           items.push(...newRecords);
           setItems(items);
           console.log(`[Mock Supabase DB] Inserted records into ${tableName}:`, newRecords);
@@ -1032,7 +1142,7 @@ class MockSupabase {
                 // Dispatch event to trigger Worker notification
                 window.dispatchEvent(new CustomEvent('mock-high-severity-alert', { detail: currentItems[idx] }));
               }
-            }, 3000); // 3-second simulated processing
+            }, 0); // 0ms simulated processing (fast for E2E)
           }
 
           return Promise.resolve({ data: newRecords, error: null });
@@ -1058,7 +1168,61 @@ class MockSupabase {
   }
 }
 
+// Helper to simulate network latency and log it
+const simulateLatency = async (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Intercept methods to add latency and monitoring logs
+const createMonitoredMock = () => {
+  const mock = new MockSupabase() as any;
+  
+  const originalFrom = mock.from.bind(mock);
+  mock.from = (tableName: string) => {
+    function wrapQueryBuilder(builder: any): any {
+      return new Proxy(builder, {
+        get(target, prop, receiver) {
+          if (prop === 'then') {
+            if (typeof target.then === 'function') {
+              return function(onFulfilled: any, onRejected: any) {
+                const start = performance.now();
+                return simulateLatency(50 + Math.random() * 200).then(() => {
+                  return target.then((result: any) => {
+                    const duration = Math.round(performance.now() - start);
+                    SystemMonitoringService.logApiRequest(`/rest/v1/${tableName}`, 'QUERY', duration, !result.error);
+                    return onFulfilled ? onFulfilled(result) : result;
+                  }).catch((err: any) => {
+                    const duration = Math.round(performance.now() - start);
+                    SystemMonitoringService.logApiRequest(`/rest/v1/${tableName}`, 'QUERY', duration, false);
+                    return onRejected ? onRejected(err) : Promise.reject(err);
+                  });
+                });
+              };
+            }
+          }
+          if (typeof target[prop] === 'function') {
+            return function(...args: any[]) {
+              const res = target[prop].apply(target, args);
+              // If the method returns a promise (like single(), insert(), update() might), we should wrap the promise with monitoring
+              if (res && typeof res.then === 'function') {
+                 if (prop === 'single' || prop === 'insert' || prop === 'update') {
+                   // wrapQueryBuilder will intercept its .then
+                 }
+              }
+              // Return wrapped builder for chaining
+              return wrapQueryBuilder(res);
+            };
+          }
+          return Reflect.get(target, prop, receiver);
+        }
+      });
+    }
+
+    return wrapQueryBuilder(originalFrom(tableName));
+  };
+
+  return mock;
+};
+
 export const supabase = (supabaseUrl && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey)
-  : (new MockSupabase() as any);
+  : createMonitoredMock();
 

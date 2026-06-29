@@ -15,15 +15,13 @@ import {
   List,
   ChevronRight,
   X,
-  Map,
+  Map as MapIcon,
   AlertCircle,
   Camera,
-  FileText,
-  Info,
-  CloudOff,
   Heart
 } from 'lucide-react';
 import SearchFilterEngine, { type FilterState } from './SearchFilterEngine';
+import { EventBus } from '../lib/EventBus';
 import WorkerRouteMap from './WorkerRouteMap';
 
 interface Report {
@@ -171,7 +169,7 @@ export default function WorkerScreen() {
       const { data, error } = await supabase
         .from('reports')
         .select('*, wards(name)')
-        .contains('ward_ids', [targetWardId])
+        .eq('ward_id', targetWardId)
         .not('status', 'eq', 'pending_triage')
         .not('status', 'eq', 'rejected');
       if (error) throw error;
@@ -246,12 +244,14 @@ export default function WorkerScreen() {
         setSession(data.session);
         showToast('Logged in successfully', 'success');
         fetchWorkerProfile(data.session.user);
+        window.dispatchEvent(new Event('mock-auth-change'));
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setSession(data.session);
         showToast('Worker account registered successfully!', 'success');
         fetchWorkerProfile(data.user);
+        window.dispatchEvent(new Event('mock-auth-change'));
       }
     } catch (err: any) {
       showToast(err.message || 'Authentication failed', 'error');
@@ -264,13 +264,14 @@ export default function WorkerScreen() {
   const handleLogOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      showToast('Failed to sign out', 'error');
-    } else {
-      setSession(null);
-      setWardId(null);
-      setReports([]);
-      showToast('Signed out successfully', 'info');
+      showToast('Error logging out', 'error');
+      return;
     }
+    setSession(null);
+    setWardId(null);
+    setReports([]);
+    showToast('Logged out successfully', 'success');
+    window.dispatchEvent(new Event('mock-auth-change'));
   };
 
   // Update report status — routed through /api/resolve for server-side state-machine enforcement
@@ -312,7 +313,7 @@ export default function WorkerScreen() {
         try {
           const errBody = await res.json();
           if (errBody?.error) errMsg = errBody.error;
-        } catch (_) { /* ignore JSON parse failure */ }
+        } catch (_err) { /* ignore JSON parse failure */ }
         throw new Error(errMsg);
       }
 
@@ -348,7 +349,19 @@ export default function WorkerScreen() {
         }
       }));
 
-      showToast(`Status updated → ${newStatus.replace('_', ' ')}`, 'success');
+      // If the report was resolved, trigger the EventBus for integrations
+      if (newStatus === 'resolved') {
+        EventBus.publish('report.resolved', {
+          reportId,
+          wardId,
+          reporterId: selectedReport?.reporter_id,
+          category: selectedReport?.category,
+          severity: selectedReport?.severity,
+          resolvedAt: new Date().toISOString()
+        });
+      }
+
+      showToast(`Status updated 👍 ${newStatus.replace('_', ' ')}`, 'success');
       
       // Reset transition inputs
       setShowSubForm(null);
@@ -584,7 +597,7 @@ export default function WorkerScreen() {
               className={`p-1.5 rounded-lg transition-colors flex items-center ${viewMode === 'route' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`}
               title="Route Map View"
             >
-              <Map className="w-3.5 h-3.5" />
+              <MapIcon className="w-3.5 h-3.5" />
             </button>
           </div>
           <button 
