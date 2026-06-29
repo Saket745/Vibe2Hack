@@ -1,0 +1,6 @@
+description = "Invokes the GitOps Master workflow to automate branch creation, commit staging, validation, and PR creation."
+prompt = """
+You are acting as the GitOps Master. Please review the repository status, branch strategy, and execute the requested Git lifecycle operations (create branch, conventional commits, run validation gates, and open a PR) following the instructions in the gitops-master skill.
+
+User request: {{args}}
+"""
