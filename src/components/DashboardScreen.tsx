@@ -22,7 +22,8 @@ import {
   Eye, 
   X, 
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Trophy
 } from 'lucide-react';
 
 interface Report {
@@ -36,7 +37,10 @@ interface Report {
   category: string;
   severity: string;
   status: string;
-  ward_id: number;
+  ward_id?: number;
+  ward_ids?: number[];
+  in_progress_at?: string;
+  resolved_at?: string;
   wards?: {
     name: string;
   };
@@ -102,6 +106,7 @@ export default function DashboardScreen() {
         },
         (err) => {
           console.warn('Geolocation failed in dashboard, using default center:', err);
+          showToast('Using default city center. Location access denied.', 'error');
         }
       );
     }
@@ -114,6 +119,8 @@ export default function DashboardScreen() {
       const { data, error: fetchError } = await supabase
         .from('reports')
         .select('*, wards(name)')
+        .not('status', 'eq', 'pending_triage')
+        .not('status', 'eq', 'rejected')
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -161,12 +168,49 @@ export default function DashboardScreen() {
     };
   }).filter(item => item.value > 0);
 
+  // 4. Prepare Ward Leaderboard Data
+  const wardStats = reports.reduce((acc, r) => {
+    const wardName = r.wards?.name || `Ward ${r.ward_ids?.[0] || r.ward_id}`;
+    if (!acc[wardName]) acc[wardName] = { name: wardName, resolved: 0, total: 0, total_sla_ms: 0 };
+    acc[wardName].total += 1;
+    if (r.status === 'resolved') {
+       acc[wardName].resolved += 1;
+       if (r.created_at && r.resolved_at) {
+          acc[wardName].total_sla_ms += new Date(r.resolved_at).getTime() - new Date(r.created_at).getTime();
+       }
+    }
+    return acc;
+  }, {} as Record<string, { name: string; resolved: number; total: number; total_sla_ms: number }>);
+
+  const leaderboardData = Object.values(wardStats)
+    .sort((a, b) => b.resolved - a.resolved)
+    .slice(0, 5);
+
+  // 5. Global Avg SLA Calculation
+  let totalResolvedSlaMs = 0;
+  let resolvedWithSlaCount = 0;
+  reports.forEach(r => {
+    if (r.status === 'resolved' && r.created_at && r.resolved_at) {
+      totalResolvedSlaMs += new Date(r.resolved_at).getTime() - new Date(r.created_at).getTime();
+      resolvedWithSlaCount += 1;
+    }
+  });
+  const avgSlaHours = resolvedWithSlaCount > 0 ? (totalResolvedSlaMs / resolvedWithSlaCount) / (1000 * 60 * 60) : 0;
+
   return (
     <div className="max-w-md mx-auto my-6 px-4 md:px-0 space-y-6 animate-in fade-in duration-200">
       {error && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-semibold flex gap-2.5 items-center">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span>{error}</span>
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-semibold flex justify-between items-center">
+          <div className="flex gap-2.5 items-center">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button 
+            onClick={() => fetchReports(true)}
+            className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/50 hover:bg-rose-200 dark:hover:bg-rose-800 text-rose-700 dark:text-rose-300 rounded-lg transition-colors cursor-pointer"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -185,20 +229,21 @@ export default function DashboardScreen() {
       </div>
       
       {/* 1. Summary Cards Grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {[
           { label: 'Total', colorClass: 'text-slate-800 dark:text-white', val: totalReports },
           { label: 'Open', colorClass: 'text-amber-600 dark:text-amber-500', val: openCount },
           { label: 'Review', colorClass: 'text-purple-600 dark:text-purple-400', val: reviewCount },
-          { label: 'Resolved', colorClass: 'text-emerald-600 dark:text-emerald-500', val: `${resolvedRate.toFixed(0)}%` }
-        ].map((card, i) => (
-          <div key={i} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 text-center shadow-sm">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{card.label}</span>
+          { label: 'Resolved', colorClass: 'text-emerald-600 dark:text-emerald-500', val: `${resolvedRate.toFixed(0)}%` },
+          { label: 'Avg SLA', colorClass: 'text-blue-600 dark:text-blue-500', val: `${avgSlaHours.toFixed(1)}h` }
+        ].map((stat, idx) => (
+          <div key={idx} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 text-center shadow-sm">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{stat.label}</span>
             {loading && totalReports === 0 ? (
               <div className="h-6 w-8 bg-slate-200 dark:bg-slate-700 rounded mx-auto mt-1.5 animate-pulse" />
             ) : (
-              <span className={`text-xl font-extrabold ${card.colorClass} mt-1 block`}>
-                {card.val}
+              <span className={`text-xl font-extrabold ${stat.colorClass} mt-1 block`}>
+                {stat.val}
               </span>
             )}
           </div>
@@ -374,7 +419,52 @@ export default function DashboardScreen() {
         </div>
       </div>
 
-      {/* 4. Detail Modal Overlay (Matching list details modal) */}
+      {/* 4. Ward Performance Leaderboard */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 shadow-md space-y-4">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700 pb-3">
+          <Trophy className="w-4 h-4 text-amber-500" />
+          Ward Performance Leaderboard
+        </h3>
+        {loading ? (
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-12 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/50" />
+            ))}
+          </div>
+        ) : leaderboardData.length === 0 ? (
+          <div className="text-center py-4 text-xs text-slate-400 italic">No resolved reports yet.</div>
+        ) : (
+          <div className="space-y-3">
+            {leaderboardData.map((ward, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-indigo-100 dark:hover:border-indigo-900 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
+                    idx === 0 ? 'bg-amber-100 text-amber-600' : 
+                    idx === 1 ? 'bg-slate-200 text-slate-600' : 
+                    idx === 2 ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-400'
+                  }`}>
+                    #{idx + 1}
+                  </span>
+                  <div>
+                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{ward.name}</span>
+                    <span className="text-[10px] text-slate-500">{ward.total} Total Issues</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-800 dark:text-white flex items-center justify-end gap-1">
+                    {ward.resolved} <span className="text-xs text-slate-400 font-normal">resolved</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">
+                    {ward.resolved > 0 ? `${((ward.total_sla_ms / ward.resolved) / (1000 * 60 * 60)).toFixed(1)}h avg SLA` : 'No SLA data'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 5. Detail Modal Overlay (Matching list details modal) */}
       {selectedReport && (
         <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
@@ -454,7 +544,7 @@ export default function DashboardScreen() {
                 <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/30 rounded-xl p-2.5 text-center">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Ward</span>
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block truncate">
-                    {selectedReport.wards?.name || `Ward ID ${selectedReport.ward_id}`}
+                    {selectedReport.wards?.name || `Ward ID ${selectedReport.ward_ids?.[0] || selectedReport.ward_id}`}
                   </span>
                 </div>
               </div>

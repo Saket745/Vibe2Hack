@@ -12,11 +12,17 @@ import {
   Sparkles,
   Inbox,
   UserCheck,
+  List,
   ChevronRight,
   X,
+  Map as MapIcon,
+  AlertCircle,
   Camera,
-  AlertCircle
+  Heart
 } from 'lucide-react';
+import SearchFilterEngine, { type FilterState } from './SearchFilterEngine';
+import { EventBus } from '../lib/EventBus';
+import WorkerRouteMap from './WorkerRouteMap';
 
 interface Report {
   id: string;
@@ -29,10 +35,15 @@ interface Report {
   category: string;
   severity: string;
   status: string;
-  ward_id: number;
+  ward_id?: number;
+  ward_ids?: number[];
+  in_progress_at?: string;
+  resolved_at?: string;
   after_image_url?: string | null;
   rejection_reason?: string | null;
   worker_notes?: string | null;
+  worker_thanked_at?: string | null;
+  worker_thanked_by?: string | null;
   wards?: {
     name: string;
   };
@@ -82,6 +93,8 @@ export default function WorkerScreen() {
   const [wardId, setWardId] = useState<number | null>(null);
   const [wardName, setWardName] = useState<string>('');
   const [reports, setReports] = useState<Report[]>([]);
+  const [filters, setFilters] = useState<FilterState | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'route'>('list');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
@@ -156,7 +169,9 @@ export default function WorkerScreen() {
       const { data, error } = await supabase
         .from('reports')
         .select('*, wards(name)')
-        .eq('ward_id', targetWardId);
+        .eq('ward_id', targetWardId)
+        .not('status', 'eq', 'pending_triage')
+        .not('status', 'eq', 'rejected');
       if (error) throw error;
       setReports(data || []);
     } catch (err: any) {
@@ -168,16 +183,41 @@ export default function WorkerScreen() {
     }
   };
 
-  // Sort queue: needs_manual_review first, then severity (high -> medium -> low), then date oldest first
+  // Filter and Sort queue
   const getSortedReports = () => {
-    return [...reports].sort((a, b) => {
-      // 1. Prioritize manual review status
+    let filtered = [...reports];
+
+    // Filter Engine
+    if (filters) {
+      if (filters.keyword) {
+        filtered = filtered.filter(r => (r.description || '').toLowerCase().includes(filters.keyword.toLowerCase()));
+      }
+      if (filters.category !== 'all') {
+        filtered = filtered.filter(r => r.category === filters.category);
+      }
+      if (filters.severity !== 'all') {
+        filtered = filtered.filter(r => r.severity === filters.severity);
+      }
+      if (filters.status !== 'all') {
+        filtered = filtered.filter(r => r.status === filters.status);
+      }
+    }
+
+    return filtered.sort((a, b) => {
+      const sortBy = filters?.sortBy || 'highest_priority';
+      
+      if (sortBy === 'newest') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      } else if (sortBy === 'oldest') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      
+      // Default: 'highest_priority' logic (manual review first, then severity, then oldest)
       const aReview = a.status === 'needs_manual_review';
       const bReview = b.status === 'needs_manual_review';
       if (aReview && !bReview) return -1;
       if (!aReview && bReview) return 1;
 
-      // 2. Prioritize severity weight
       const severityWeights: Record<string, number> = { high: 3, medium: 2, low: 1 };
       const aWeight = severityWeights[a.severity] || 0;
       const bWeight = severityWeights[b.severity] || 0;
@@ -185,7 +225,6 @@ export default function WorkerScreen() {
         return bWeight - aWeight; // Descending order
       }
 
-      // 3. Oldest report first (timestamp ascending)
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
   };
@@ -205,12 +244,14 @@ export default function WorkerScreen() {
         setSession(data.session);
         showToast('Logged in successfully', 'success');
         fetchWorkerProfile(data.session.user);
+        window.dispatchEvent(new Event('mock-auth-change'));
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setSession(data.session);
         showToast('Worker account registered successfully!', 'success');
         fetchWorkerProfile(data.user);
+        window.dispatchEvent(new Event('mock-auth-change'));
       }
     } catch (err: any) {
       showToast(err.message || 'Authentication failed', 'error');
@@ -223,13 +264,14 @@ export default function WorkerScreen() {
   const handleLogOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      showToast('Failed to sign out', 'error');
-    } else {
-      setSession(null);
-      setWardId(null);
-      setReports([]);
-      showToast('Signed out successfully', 'info');
+      showToast('Error logging out', 'error');
+      return;
     }
+    setSession(null);
+    setWardId(null);
+    setReports([]);
+    showToast('Logged out successfully', 'success');
+    window.dispatchEvent(new Event('mock-auth-change'));
   };
 
   // Update report status — routed through /api/resolve for server-side state-machine enforcement
@@ -271,7 +313,7 @@ export default function WorkerScreen() {
         try {
           const errBody = await res.json();
           if (errBody?.error) errMsg = errBody.error;
-        } catch (_) { /* ignore JSON parse failure */ }
+        } catch (_err) { /* ignore JSON parse failure */ }
         throw new Error(errMsg);
       }
 
@@ -285,6 +327,8 @@ export default function WorkerScreen() {
             return {
               ...r,
               status: newStatus,
+      ...(newStatus === 'in_progress' ? { in_progress_at: new Date().toISOString() } : {}),
+      ...(newStatus === 'resolved' ? { resolved_at: new Date().toISOString() } : {}),
               after_image_url: resData.after_image_url || r.after_image_url,
               rejection_reason: extra?.rejectionReason || r.rejection_reason,
               worker_notes: extra?.workerNotes || r.worker_notes
@@ -295,7 +339,29 @@ export default function WorkerScreen() {
         localStorage.setItem('mock_db_reports', JSON.stringify(updatedReports));
       }
 
-      showToast(`Status updated → ${newStatus.replace('_', ' ')}`, 'success');
+      // Dispatch global event for local/mock Realtime Notifications
+      window.dispatchEvent(new CustomEvent('mock-status-update', {
+        detail: {
+          reportId,
+          newStatus,
+          oldStatus: selectedReport?.status,
+          reporterId: selectedReport?.reporter_id
+        }
+      }));
+
+      // If the report was resolved, trigger the EventBus for integrations
+      if (newStatus === 'resolved') {
+        EventBus.publish('report.resolved', {
+          reportId,
+          wardId,
+          reporterId: selectedReport?.reporter_id,
+          category: selectedReport?.category,
+          severity: selectedReport?.severity,
+          resolvedAt: new Date().toISOString()
+        });
+      }
+
+      showToast(`Status updated 👍 ${newStatus.replace('_', ' ')}`, 'success');
       
       // Reset transition inputs
       setShowSubForm(null);
@@ -309,6 +375,8 @@ export default function WorkerScreen() {
       setSelectedReport(prev => prev ? { 
         ...prev, 
         status: newStatus,
+      ...(newStatus === 'in_progress' ? { in_progress_at: new Date().toISOString() } : {}),
+      ...(newStatus === 'resolved' ? { resolved_at: new Date().toISOString() } : {}),
         after_image_url: resData.after_image_url || prev.after_image_url,
         rejection_reason: extra?.rejectionReason || prev.ai_analysis?.rejectionReason,
         worker_notes: extra?.workerNotes
@@ -320,7 +388,53 @@ export default function WorkerScreen() {
     }
   };
 
-  const closeModal = () => {
+    const handleThankCitizen = async (reportId: string) => {
+      setIsUpdatingStatus(true);
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!currentSession) throw new Error('No active session.');
+
+        // For mock backend, update localStorage directly
+        const localReports = JSON.parse(localStorage.getItem('mock_db_reports') || '[]');
+        const updatedReports = localReports.map((r: any) => {
+          if (r.id === reportId) {
+            return {
+              ...r,
+              worker_thanked_at: new Date().toISOString(),
+              worker_thanked_by: currentSession.user.id
+            };
+          }
+          return r;
+        });
+        localStorage.setItem('mock_db_reports', JSON.stringify(updatedReports));
+
+        setSelectedReport(prev => prev ? { 
+          ...prev, 
+          worker_thanked_at: new Date().toISOString(),
+          worker_thanked_by: currentSession.user.id
+        } : null);
+
+        // Find reporterId to dispatch event
+        const reporterId = localReports.find((r: any) => r.id === reportId)?.reporter_id;
+        if (reporterId) {
+          window.dispatchEvent(
+            new CustomEvent('mock-thank-citizen', {
+              detail: { reporterId, workerId: currentSession.user.id }
+            })
+          );
+        }
+
+        if (wardId) fetchReports(wardId);
+
+        showToast('Thank you sent to citizen!', 'success');
+      } catch (err: any) {
+        showToast(err.message || 'Failed to send thank you.', 'error');
+      } finally {
+        setIsUpdatingStatus(false);
+      }
+    };
+
+    const closeModal = () => {
     setSelectedReport(null);
     setShowSubForm(null);
     setRejectionReasonInput('');
@@ -468,16 +582,37 @@ export default function WorkerScreen() {
             {reports.length}
           </span>
         </h4>
-        <button 
-          onClick={() => wardId && fetchReports(wardId)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-          title="Refresh Queue"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View Toggle */}
+          <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+            <button 
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-lg transition-colors flex items-center ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`}
+              title="List View"
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+            <button 
+              onClick={() => setViewMode('route')}
+              className={`p-1.5 rounded-lg transition-colors flex items-center ${viewMode === 'route' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`}
+              title="Route Map View"
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <button 
+            onClick={() => wardId && fetchReports(wardId)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors bg-slate-100 dark:bg-slate-800"
+            title="Refresh Queue"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* Queue List */}
+      <SearchFilterEngine role="worker" onFilterChange={setFilters} />
+
+      {/* Main Content Area (List or Map) */}
       {isDataLoading ? (
         <div className="flex flex-col justify-center items-center py-12">
           <RefreshCw className="w-6 h-6 text-indigo-550 animate-spin" />
@@ -501,6 +636,14 @@ export default function WorkerScreen() {
           <Inbox className="w-8 h-8 text-slate-350 dark:text-slate-700 mx-auto mb-2.5" />
           <p className="text-xs font-bold text-slate-500 dark:text-slate-400">All clean! No reports assigned to this ward.</p>
         </div>
+      ) : viewMode === 'route' ? (
+        <WorkerRouteMap 
+          stops={sortedQueue.filter(r => r.status !== 'resolved' && r.status !== 'rejected')}
+          onMarkerClick={(id) => {
+            const r = reports.find(x => x.id === id);
+            if (r) setSelectedReport(r);
+          }}
+        />
       ) : (
         <div className="space-y-3">
           {sortedQueue.map(report => (
@@ -772,13 +915,33 @@ export default function WorkerScreen() {
                       </button>
                     </>
                   ) : (
-                    <div className="flex-1 text-center py-2 text-xs font-bold text-slate-400 dark:text-slate-500 flex justify-center items-center gap-1">
-                      {selectedReport.status === 'resolved' ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      ) : (
-                        <X className="w-4 h-4 text-rose-500" />
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="text-center py-2 text-xs font-bold text-slate-400 dark:text-slate-500 flex justify-center items-center gap-1">
+                        {selectedReport.status === 'resolved' ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <X className="w-4 h-4 text-rose-500" />
+                        )}
+                        <span>Status is locked ({selectedReport.status})</span>
+                      </div>
+                      
+                      {selectedReport.status === 'resolved' && !selectedReport.worker_thanked_at && (
+                        <button 
+                          disabled={isUpdatingStatus}
+                          onClick={() => handleThankCitizen(selectedReport.id)}
+                          className="w-full py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 disabled:bg-slate-300 text-white font-extrabold text-xs transition-colors flex justify-center items-center gap-1.5 shadow-sm"
+                        >
+                          <Heart className="w-4 h-4" />
+                          Send Citizen a Thank You!
+                        </button>
                       )}
-                      <span>Status is locked ({selectedReport.status})</span>
+                      
+                      {selectedReport.status === 'resolved' && selectedReport.worker_thanked_at && (
+                         <div className="text-center py-2 text-xs font-bold text-pink-500 flex justify-center items-center gap-1.5 bg-pink-50 dark:bg-pink-500/10 rounded-xl border border-pink-100 dark:border-pink-500/20">
+                            <Heart className="w-4 h-4 fill-pink-500" /> 
+                            Citizen Thanked!
+                         </div>
+                      )}
                     </div>
                   )}
                 </div>

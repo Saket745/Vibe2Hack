@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Star
 } from 'lucide-react';
+import SearchFilterEngine, { type FilterState } from './SearchFilterEngine';
 
 interface Report {
   id: string;
@@ -30,7 +31,10 @@ interface Report {
   category: string;
   severity: string;
   status: string;
-  ward_id: number;
+  ward_id?: number;
+  ward_ids?: number[];
+  in_progress_at?: string;
+  resolved_at?: string;
   wards?: {
     name: string;
   };
@@ -54,6 +58,7 @@ export default function ReportsList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'my' | 'all'>('all');
+  const [filters, setFilters] = useState<FilterState | null>(null);
   
   // Modal State
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -130,6 +135,8 @@ export default function ReportsList() {
       const { data, error: fetchError } = await supabase
         .from('reports')
         .select('*, wards(name)')
+        .not('status', 'eq', 'pending_triage')
+        .not('status', 'eq', 'rejected')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -205,24 +212,53 @@ export default function ReportsList() {
     return R * c;
   };
 
-  // Filter reports based on tab
+  // Filter reports based on tab and SearchFilterEngine
   const filteredReports = reports.filter(r => {
-    if (activeTab === 'my') {
-      return r.reporter_id === reporterId;
+    // 1. Tab Filter
+    if (activeTab === 'my' && r.reporter_id !== reporterId) {
+      return false;
     }
+
+    // 2. Search & Filter Engine
+    if (filters) {
+      if (filters.keyword && !(r.description || '').toLowerCase().includes(filters.keyword.toLowerCase())) {
+        return false;
+      }
+      if (filters.category !== 'all' && r.category !== filters.category) {
+        return false;
+      }
+      if (filters.severity !== 'all' && r.severity !== filters.severity) {
+        return false;
+      }
+      if (filters.status !== 'all' && r.status !== filters.status) {
+        return false;
+      }
+    }
+
     return true;
   });
 
-  // Sort by Proximity if location is available and tab is 'all'
+  // Sort by Proximity, Date, or Priority
   const getSortedReports = () => {
-    if (userCoords && activeTab === 'all') {
-      return [...filteredReports].sort((a, b) => {
+    const sorted = [...filteredReports];
+    
+    const sortBy = filters?.sortBy || 'newest';
+    
+    if (sortBy === 'nearest' && userCoords && activeTab === 'all') {
+      return sorted.sort((a, b) => {
         const distA = getDistance(userCoords.lat, userCoords.lng, a.latitude, a.longitude);
         const distB = getDistance(userCoords.lat, userCoords.lng, b.latitude, b.longitude);
         return distA - distB;
       });
+    } else if (sortBy === 'oldest') {
+      return sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    } else if (sortBy === 'highest_priority') {
+      const priorityMap: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      return sorted.sort((a, b) => (priorityMap[b.severity] || 0) - (priorityMap[a.severity] || 0));
     }
-    return filteredReports;
+    
+    // Default: newest
+    return sorted; // Reports are already fetched descending (newest first)
   };
 
   const sortedReports = getSortedReports();
@@ -271,6 +307,8 @@ export default function ReportsList() {
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
+
+      <SearchFilterEngine role="citizen" onFilterChange={setFilters} />
 
       {/* Error State */}
       {error && (
@@ -540,7 +578,7 @@ export default function ReportsList() {
                 <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/30 rounded-xl p-2.5 text-center">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">Ward</span>
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block truncate">
-                    {selectedReport.wards?.name || `Ward ID ${selectedReport.ward_id}`}
+                    {selectedReport.wards?.name || `Ward ID ${selectedReport.ward_ids?.[0] || selectedReport.ward_id}`}
                   </span>
                 </div>
               </div>
