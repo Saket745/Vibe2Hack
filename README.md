@@ -9,31 +9,31 @@
 ## 🏗️ Architecture & System Design
 
 ```mermaid
-graph TD
-    subgraph Client
-        Citizen[Citizen App]
-        Admin[Admin Dashboard]
+flowchart TD
+    subgraph Client["Client"]
+        Citizen["Citizen App"]
+        Admin["Admin Dashboard"]
     end
 
-    subgraph APIs
-        TriageAPI[/api/triage]
-        CopilotAPI[/api/copilot]
+    subgraph APIs["APIs"]
+        TriageAPI["/api/triage"]
+        CopilotAPI["/api/copilot"]
     end
 
-    subgraph AI Layer
-        Gemini[Gemini API]
+    subgraph AILayer["AI Layer"]
+        Gemini["Gemini API"]
     end
 
-    subgraph Business Services
-        Prediction[Prediction Service]
-        Recommendation[Recommendation Engine]
-        RuleEngine[Rule Engine]
-        Intelligence[Incident Intelligence Engine]
-        Routing[Worker Routing]
+    subgraph BusinessServices["Business Services"]
+        Prediction["Prediction Service"]
+        Recommendation["Recommendation Engine"]
+        RuleEngine["Rule Engine"]
+        Intelligence["Incident Intelligence Engine"]
+        Routing["Worker Routing"]
     end
 
-    subgraph Data
-        DB[(Supabase Postgres & Storage)]
+    subgraph Data["Data"]
+        DB[("Supabase Postgres & Storage")]
     end
 
     %% Reporting Flow
@@ -46,12 +46,12 @@ graph TD
     RuleEngine --> Routing
     Routing --> DB
     Intelligence --> DB
-    
+
     DB --> Admin
-    
+
     %% Copilot Flow
     Admin -->|Admin Question| CopilotAPI
-    CopilotAPI -->|Prepare & Anonymize| ContextBuilder[CopilotContextBuilder]
+    CopilotAPI -->|Prepare & Anonymize| ContextBuilder["CopilotContextBuilder"]
     ContextBuilder -->|Structured Context| Gemini
     Gemini -->|Actionable Answer| Admin
 ```
