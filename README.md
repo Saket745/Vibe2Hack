@@ -10,50 +10,51 @@
 
 ```mermaid
 graph TD
+
     subgraph Client
-        Citizen[Citizen App]
-        Admin[Admin Dashboard]
+        Citizen["Citizen App"]
+        Admin["Admin Dashboard"]
     end
 
     subgraph APIs
-        TriageAPI[/api/triage]
-        CopilotAPI[/api/copilot]
+        TriageAPI["/api/triage"]
+        CopilotAPI["/api/copilot"]
     end
 
-    subgraph AI Layer
-        Gemini[Gemini API]
+    subgraph "AI Layer"
+        Gemini["Gemini API"]
+        ContextBuilder["Copilot Context Builder"]
     end
 
-    subgraph Business Services
-        Prediction[Prediction Service]
-        Recommendation[Recommendation Engine]
-        RuleEngine[Rule Engine]
-        Intelligence[Incident Intelligence Engine]
-        Routing[Worker Routing]
+    subgraph "Business Services"
+        Intelligence["Incident Intelligence Engine"]
+        Prediction["Prediction Service"]
+        Recommendation["Recommendation Engine"]
+        RuleEngine["Rule Engine"]
+        Routing["Worker Routing"]
     end
 
     subgraph Data
-        DB[(Supabase Postgres & Storage)]
+        DB[("Supabase Postgres & Storage")]
     end
 
     %% Reporting Flow
-    Citizen -->|Report & Photo| TriageAPI
+    Citizen -->|"Report & Photo"| TriageAPI
     TriageAPI --> Gemini
-    Gemini -->|Structured JSON| Intelligence
+    Gemini -->|"Structured JSON"| Intelligence
     Intelligence --> Prediction
     Intelligence --> Recommendation
     Intelligence --> RuleEngine
     RuleEngine --> Routing
     Routing --> DB
     Intelligence --> DB
-    
     DB --> Admin
-    
+
     %% Copilot Flow
-    Admin -->|Admin Question| CopilotAPI
-    CopilotAPI -->|Prepare & Anonymize| ContextBuilder[CopilotContextBuilder]
-    ContextBuilder -->|Structured Context| Gemini
-    Gemini -->|Actionable Answer| Admin
+    Admin -->|"Admin Question"| CopilotAPI
+    CopilotAPI -->|"Prepare & Anonymize"| ContextBuilder
+    ContextBuilder -->|"Structured Context"| Gemini
+    Gemini -->|"Actionable Answer"| Admin
 ```
 
 ### Key Technical Specs
