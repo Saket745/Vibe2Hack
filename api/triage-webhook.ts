@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
+import { LocationService } from '../src/lib/LocationService';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const supabaseAdmin = createClient(
@@ -13,12 +14,8 @@ const FALLBACK_CATEGORY = 'unknown'; // Note: With Phase 3 dynamic schema, 'unkn
 const FALLBACK_SEVERITY = 'unknown';
 
 // Pre-fetched wards cache
-let cachedWards: any[] | null = null;
 async function fetchWards() {
-  if (cachedWards) return cachedWards;
-  const { data } = await supabaseAdmin.from('wards').select('*');
-  cachedWards = data || [];
-  return cachedWards;
+  return LocationService.getWards();
 }
 
 // Haversine distance

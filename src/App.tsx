@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
-import ReportScreen from './components/ReportScreen';
-import ReportsList from './components/ReportsList';
-import DashboardScreen from './components/DashboardScreen';
-import WorkerScreen from './components/WorkerScreen';
-import CitizenProfile from './components/CitizenProfile';
+import { useState, useEffect, Suspense, lazy } from 'react';
+const ReportScreen = lazy(() => import('./components/ReportScreen'));
+const ReportsList = lazy(() => import('./components/ReportsList'));
+const DashboardScreen = lazy(() => import('./components/DashboardScreen'));
+const WorkerScreen = lazy(() => import('./components/WorkerScreen'));
+const AdminScreen = lazy(() => import('./components/AdminScreen'));
+const CitizenProfile = lazy(() => import('./components/CitizenProfile'));
 import NotificationCenter from './components/NotificationCenter';
-import { Camera, Map, BarChart2, CheckCircle, AlertTriangle, Info, X, Users, Award } from 'lucide-react';
+import { Camera, Map, BarChart2, CheckCircle, AlertTriangle, Info, X, Users, Award, Shield } from 'lucide-react';
 import { PWABadge } from './components/PWABadge';
 import { useRealtimeNotifications } from './hooks/useRealtimeNotifications';
+import { AuthorizationService } from './lib/AuthorizationService';
 
 interface ToastData {
   message: string;
@@ -17,8 +19,29 @@ interface ToastData {
 function App() {
   useRealtimeNotifications();
   
-  const [activeTab, setActiveTab] = useState<'report' | 'explore' | 'profile' | 'dashboard' | 'worker'>('report');
+  const [activeTab, setActiveTab] = useState<'report' | 'explore' | 'profile' | 'dashboard' | 'worker' | 'admin'>('report');
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check RBAC role
+  useEffect(() => {
+    const checkRole = async () => {
+      const admin = await AuthorizationService.isAdmin();
+      setIsAdmin(admin);
+      if (admin && activeTab === 'worker') {
+        setActiveTab('admin');
+      } else if (!admin && activeTab === 'admin') {
+        setActiveTab('worker');
+      }
+    };
+    checkRole();
+
+    const handleAuthChange = () => {
+      checkRole();
+    };
+    window.addEventListener('mock-auth-change', handleAuthChange);
+    return () => window.removeEventListener('mock-auth-change', handleAuthChange);
+  }, [activeTab]);
 
   // Listen for global custom toast events
   useEffect(() => {
@@ -97,34 +120,57 @@ function App() {
             <BarChart2 className="w-3.5 h-3.5" />
             Stats
           </button>
-          <button
-            onClick={() => setActiveTab('worker')}
-            className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-              activeTab === 'worker'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            Workers
-          </button>
+          {isAdmin ? (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                activeTab === 'admin'
+                  ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              Admin
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('worker')}
+              className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                activeTab === 'worker'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Workers
+            </button>
+          )}
         </div>
       </div>
     </header>
 
       {/* Screen Render */}
       <div className="mt-2">
-        {activeTab === 'report' ? (
-          <ReportScreen />
-        ) : activeTab === 'explore' ? (
-          <ReportsList />
-        ) : activeTab === 'profile' ? (
-          <CitizenProfile />
-        ) : activeTab === 'dashboard' ? (
-          <DashboardScreen />
-        ) : (
-          <WorkerScreen />
-        )}
+        <Suspense fallback={
+          <div className="w-full h-64 flex flex-col items-center justify-center space-y-4">
+            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p className="text-sm font-medium text-slate-500">Loading screen...</p>
+          </div>
+        }>
+          {activeTab === 'report' ? (
+            <ReportScreen />
+          ) : activeTab === 'explore' ? (
+            <ReportsList />
+          ) : activeTab === 'profile' ? (
+            <CitizenProfile />
+          ) : activeTab === 'dashboard' ? (
+            <DashboardScreen />
+          ) : activeTab === 'admin' ? (
+            <AdminScreen />
+          ) : (
+            <WorkerScreen />
+          )}
+        </Suspense>
       </div>
 
       {/* Global Floating Toast Component */}

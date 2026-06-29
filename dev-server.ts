@@ -1,5 +1,5 @@
 import { createServer } from 'http';
-import triageHandler from './api/triage';
+import triageHandler from './api/triage-webhook';
 import resolveHandler from './api/resolve';
 import * as fs from 'fs';
 import * as path from 'path';

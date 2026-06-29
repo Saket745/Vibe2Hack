@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Award, Star, CheckCircle, Heart, Flag, Copy, RefreshCw, Key, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Award, Star, CheckCircle, Heart, Flag, Copy, RefreshCw, Shield } from 'lucide-react';
 import { useCitizenId } from '../hooks/useCitizenId';
-import { GamificationService, GamificationConfig } from '../lib/GamificationService';
+import { GamificationService } from '../lib/GamificationService';
 import { supabase } from '../lib/supabaseClient';
 import { showToast } from '../lib/toast';
 
 export default function CitizenProfile() {
   const { citizenId, restoreCitizenId } = useCitizenId();
   const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [restoreInput, setRestoreInput] = useState('');
   const [showRestore, setShowRestore] = useState(false);
 

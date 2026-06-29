@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { showToast } from '../lib/toast';
 import imageCompression from 'browser-image-compression';
 import { OfflineQueueService } from '../lib/OfflineQueueService';
 import { supabase } from '../lib/supabaseClient';
 import { useCitizenId } from '../hooks/useCitizenId';
+import { LocationService, type City } from '../lib/LocationService';
 import { 
   Camera, 
   MapPin, 
@@ -48,6 +50,8 @@ export default function ReportScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [cities, setCities] = useState<City[]>([]);
+  const [selectedCityId, setSelectedCityId] = useState<number>(1);
 
   // Flow & Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,6 +69,7 @@ export default function ReportScreen() {
 
   // 2. Fetch Location on Mount & Offline Queue
   useEffect(() => {
+    setCities(LocationService.getCities());
     fetchLocation();
     
     const refreshQueueCount = async () => {
@@ -160,6 +165,8 @@ export default function ReportScreen() {
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const sanitizedDescription = DOMPurify.sanitize(description || '');
+
     let base64Data = '';
     const client_submission_id = crypto.randomUUID();
 
@@ -204,13 +211,14 @@ export default function ReportScreen() {
       const { error: insertError } = await supabase.from('reports').insert({
         reporter_id: reporterId,
         image_url: tempStoragePath,
-        description: description || '',
+        description: sanitizedDescription,
         latitude: latitude,
         longitude: longitude,
         status: 'pending_triage',
         category: 'unknown',
         severity: 'unknown',
-        dedupe_hash: `client_id_${client_submission_id}`
+        dedupe_hash: `client_id_${client_submission_id}`,
+        city_id: selectedCityId
       });
 
       if (insertError) {
@@ -248,7 +256,7 @@ export default function ReportScreen() {
             image: base64Data,
             mimeType: imageFile.type,
             reporterId: reporterId,
-            description: description,
+            description: sanitizedDescription,
             latitude: latitude,
             longitude: longitude,
             client_submission_id
@@ -550,6 +558,23 @@ export default function ReportScreen() {
             >
               <RefreshCw className={`w-4 h-4 ${geoLoading ? 'animate-spin' : ''}`} />
             </button>
+          </div>
+
+          {/* 2.5 City Selection */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+              Select City <span className="text-rose-500">*</span>
+            </label>
+            <select
+              value={selectedCityId}
+              onChange={(e) => setSelectedCityId(Number(e.target.value))}
+              disabled={isSubmitting}
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 p-4 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cities.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* 3. Description Input */}
